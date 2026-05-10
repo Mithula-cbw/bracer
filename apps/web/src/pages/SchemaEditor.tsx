@@ -43,6 +43,15 @@ function useDndSensors() {
 
 // ─── ChipEditor ───────────────────────────────────────────────────────────────
 
+const CHIP_COLORS = [
+  'bg-indigo-500/10 border-indigo-500/20 text-indigo-300',
+  'bg-emerald-500/10 border-emerald-500/20 text-emerald-300',
+  'bg-amber-500/10 border-amber-500/20 text-amber-300',
+  'bg-rose-500/10 border-rose-500/20 text-rose-300',
+  'bg-cyan-500/10 border-cyan-500/20 text-cyan-300',
+  'bg-fuchsia-500/10 border-fuchsia-500/20 text-fuchsia-300',
+];
+
 function ChipEditor({ options, onChange }: { options: string[]; onChange: (o: string[]) => void }) {
   const [draft, setDraft] = useState('');
   const add = () => {
@@ -51,26 +60,39 @@ function ChipEditor({ options, onChange }: { options: string[]; onChange: (o: st
     setDraft('');
   };
   return (
-    <div className="mt-2.5 ml-8 flex flex-wrap gap-1.5 items-center p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
-      {options.length === 0 && (
-        <span className="text-xs text-slate-600 italic">No options yet — type below</span>
-      )}
-      {options.map((opt) => (
-        <span key={opt} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-600 text-white text-xs font-medium shadow-sm">
-          {opt}
-          <button type="button" onClick={() => onChange(options.filter((o) => o !== opt))}
-            className="ml-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors leading-none text-white/80 hover:text-white">
-            ×
-          </button>
-        </span>
-      ))}
-      <input
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
-        placeholder="Type option, press Enter…"
-        className="px-2 py-0.5 text-xs rounded-md bg-slate-800 border border-slate-700 text-slate-200 placeholder:text-slate-600 outline-none focus:border-indigo-500 min-w-[140px]"
-      />
+    <div className="mt-1 sm:mt-2 ml-10 sm:ml-[3.25rem] flex flex-col gap-2.5 p-3 rounded-xl bg-slate-900/40 border border-slate-800/80 shadow-inner">
+      <div className="flex flex-wrap gap-2 items-center min-h-[28px]">
+        {options.length === 0 && (
+          <span className="text-xs text-slate-500 italic">No options defined yet.</span>
+        )}
+        {options.map((opt, i) => {
+          const color = CHIP_COLORS[i % CHIP_COLORS.length];
+          return (
+            <span key={opt} className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium shadow-sm transition-all hover:brightness-110 ${color}`}>
+              {opt}
+              <button type="button" onClick={() => onChange(options.filter((o) => o !== opt))}
+                className="w-4 h-4 rounded-md flex items-center justify-center opacity-70 hover:opacity-100 hover:text-red-400 hover:bg-red-400/20 transition-all leading-none focus:outline-none">
+                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </span>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+          placeholder="Type option name..."
+          className="flex-1 max-w-[200px] px-3 py-1.5 text-xs rounded-md bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 outline-none focus:border-indigo-500 transition-colors shadow-inner"
+        />
+        <button type="button" onClick={add} disabled={!draft.trim()}
+          className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-800 border border-slate-700 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white disabled:opacity-50 disabled:hover:bg-slate-800 disabled:hover:border-slate-700 disabled:text-slate-500 text-slate-300 transition-all shadow-sm">
+          Add
+        </button>
+      </div>
     </div>
   );
 }
@@ -122,18 +144,18 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
   return (
     <div ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
-      className="flex flex-col">
+      className="flex flex-col mb-2">
       {/* Card */}
-      <div className={`group flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all duration-150 ${
+      <div className={`group flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 rounded-xl border transition-all duration-200 ${
         depth > 0
-          ? 'bg-slate-900/60 border-slate-800/50 hover:border-slate-700 hover:bg-slate-900'
-          : 'bg-slate-900 border-slate-800 hover:border-indigo-800/70 hover:shadow-[0_0_0_1px_rgba(99,102,241,0.15)]'
-      } ${isDragging ? 'shadow-2xl scale-[1.01]' : ''}`}>
+          ? 'bg-slate-900/50 border-slate-800/60 hover:border-slate-700/80 hover:bg-slate-900'
+          : 'bg-slate-900/80 border-slate-800 hover:border-indigo-500/50 hover:shadow-md hover:bg-slate-900'
+      } ${isDragging ? 'shadow-2xl scale-[1.02] border-indigo-500/50 bg-slate-900 z-10' : ''}`}>
 
         {/* Drag handle */}
         <button type="button" {...attributes} {...listeners}
-          className="text-slate-700 hover:text-slate-400 cursor-grab active:cursor-grabbing flex-shrink-0 touch-none transition-colors p-0.5">
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
+          className="text-slate-600 hover:text-slate-300 hover:bg-slate-800 p-1 sm:p-1.5 rounded-md cursor-grab active:cursor-grabbing flex-shrink-0 touch-none transition-colors">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
             <circle cx="5" cy="4" r="1.2"/><circle cx="11" cy="4" r="1.2"/>
             <circle cx="5" cy="8" r="1.2"/><circle cx="11" cy="8" r="1.2"/>
             <circle cx="5" cy="12" r="1.2"/><circle cx="11" cy="12" r="1.2"/>
@@ -141,7 +163,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
         </button>
 
         {/* Type icon badge */}
-        <span className="flex-shrink-0 w-7 h-7 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-mono font-bold text-indigo-400 select-none">
+        <span className="hidden sm:flex flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 items-center justify-center text-[11px] font-mono font-bold text-indigo-400 select-none shadow-sm">
           {TYPE_ICON[field.type]}
         </span>
 
@@ -150,7 +172,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
           value={field.name}
           onChange={(e) => onChange({ ...field, name: e.target.value, label: e.target.value })}
           placeholder="field_name"
-          className="flex-1 min-w-0 px-2.5 py-1 text-sm rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-100 placeholder:text-slate-600 outline-none focus:border-indigo-500 focus:bg-slate-800 font-mono transition-colors"
+          className="flex-1 w-full sm:w-auto min-w-[120px] px-2 sm:px-3 py-1.5 text-sm rounded-lg bg-slate-950/50 border border-slate-800/80 text-slate-100 placeholder:text-slate-600 outline-none focus:border-indigo-500 focus:bg-slate-950 font-mono transition-all shadow-inner"
         />
 
         {/* Type select */}
@@ -158,7 +180,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
           <select
             value={field.type}
             onChange={(e) => onChange({ ...field, type: e.target.value as FieldType, options: [], subFields: [] })}
-            className="appearance-none pl-2.5 pr-6 py-1 text-xs rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-300 outline-none focus:border-indigo-500 cursor-pointer transition-colors hover:border-slate-600 font-medium"
+            className="appearance-none pl-2 sm:pl-3 pr-6 sm:pr-8 py-1.5 text-xs rounded-lg bg-slate-950/50 border border-slate-800/80 text-slate-300 outline-none focus:border-indigo-500 cursor-pointer transition-all hover:border-slate-600 font-medium shadow-inner"
           >
             {FIELD_TYPES.map((t) => (
               <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
@@ -172,19 +194,19 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
         {/* Required */}
         <button type="button" onClick={() => onChange({ ...field, required: !field.required })}
           title="Toggle required"
-          className={`flex-shrink-0 px-2 py-1 text-[10px] rounded-lg border font-bold tracking-wider transition-all ${
+          className={`flex-shrink-0 px-2 sm:px-2.5 py-1 sm:py-1.5 text-[10px] rounded-lg border font-bold tracking-widest transition-all uppercase ${
             field.required
-              ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm shadow-indigo-900/50'
-              : 'bg-transparent border-slate-700 text-slate-600 hover:border-slate-500 hover:text-slate-400'
+              ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300'
+              : 'bg-transparent border-slate-800 text-slate-600 hover:border-slate-600 hover:text-slate-400'
           }`}>
-          REQ
+          Req
         </button>
 
         {/* Expand sub-fields */}
         {hasSubFields && (
           <button type="button" onClick={() => setSubOpen((o) => !o)}
-            className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors">
-            <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${subOpen ? 'rotate-90' : ''}`}
+            className={`flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-md flex items-center justify-center transition-colors ${subOpen ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'}`}>
+            <svg className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 ${subOpen ? 'rotate-90' : ''}`}
               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
@@ -193,8 +215,8 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
 
         {/* Delete */}
         <button type="button" onClick={onDelete}
-          className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-slate-700 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          className="flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-md flex items-center justify-center text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors sm:opacity-0 group-hover:opacity-100">
+          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -236,16 +258,20 @@ function FieldList({ fields, onChange, label, addLabel, hint }: {
     <section>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">{label}</h3>
-        <span className="text-xs text-slate-600 tabular-nums">{fields.length} field{fields.length !== 1 ? 's' : ''}</span>
+        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/50 tabular-nums">
+          {fields.length} {fields.length === 1 ? 'field' : 'fields'}
+        </span>
       </div>
 
       {fields.length === 0 ? (
         <button type="button" onClick={() => onChange([blankField()])}
-          className="w-full border-2 border-dashed border-slate-800 hover:border-indigo-700/60 rounded-xl py-8 flex flex-col items-center gap-2 text-slate-600 hover:text-indigo-400 transition-all group cursor-pointer">
-          <div className="w-8 h-8 rounded-full border-2 border-current flex items-center justify-center group-hover:scale-110 transition-transform">
-            <span className="text-lg leading-none">+</span>
+          className="w-full border-2 border-dashed border-slate-800/80 hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-xl py-10 flex flex-col items-center gap-3 text-slate-500 hover:text-indigo-400 transition-all group cursor-pointer">
+          <div className="w-10 h-10 rounded-full bg-slate-900 group-hover:bg-indigo-500/10 flex items-center justify-center transition-colors">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
           </div>
-          <span className="text-sm font-medium">{addLabel}</span>
+          <span className="text-sm font-medium tracking-wide">{addLabel}</span>
         </button>
       ) : (
         <>
@@ -259,8 +285,11 @@ function FieldList({ fields, onChange, label, addLabel, hint }: {
             </SortableContext>
           </DndContext>
           <button type="button" onClick={() => onChange([...fields, blankField()])}
-            className="mt-3 flex items-center gap-1.5 text-sm text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
-            <span className="text-base leading-none">+</span> {addLabel}
+            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-indigo-400 hover:text-white bg-indigo-500/10 hover:bg-indigo-600 transition-colors">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            {addLabel}
           </button>
         </>
       )}
@@ -449,6 +478,7 @@ export function SchemaEditor() {
   const [schemaName, setSchemaName] = useState(existing?.name ?? '');
   const [rootFields, setRootFields] = useState<SchemaField[]>(existing?.rootFields ?? []);
   const [listFields, setListFields] = useState<SchemaField[]>(existing?.listFields ?? []);
+  const [saveError, setSaveError] = useState('');
 
   const isValid = schemaName.trim().length > 0 && (rootFields.length + listFields.length) > 0;
 
@@ -459,7 +489,12 @@ export function SchemaEditor() {
   }, [schemaName]);
 
   const handleSave = () => {
-    if (!projectId || !isValid) return;
+    if (!isValid) {
+      setSaveError('Schema needs a name and at least 1 field to save.');
+      setTimeout(() => setSaveError(''), 4000);
+      return;
+    }
+    if (!projectId) return;
     const schema: Schema = {
       id: isNew ? uid() : (existing?.id ?? uid()),
       name: schemaName.trim(), rootFields, listFields,
@@ -479,26 +514,43 @@ export function SchemaEditor() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24">
       {/* Top bar */}
-      <div className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 shadow-sm">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 shadow-sm">
+        <div className="max-w-3xl mx-auto px-4 h-14 sm:h-16 flex items-center gap-3">
           <button type="button" onClick={() => navigate(`/project/${projectId}`)}
-            className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-100 transition-colors flex-shrink-0 group">
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-100 hover:border-slate-600 transition-all flex-shrink-0 group shadow-sm">
             <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-            <span className="max-w-[100px] truncate hidden sm:block">{project.name}</span>
           </button>
-          <span className="text-slate-700 hidden sm:block text-lg">／</span>
-          <input
-            value={schemaName}
-            onChange={(e) => setSchemaName(e.target.value)}
-            placeholder="Schema name…"
-            className="flex-1 min-w-0 bg-transparent border-b-2 border-slate-800 focus:border-indigo-500 outline-none text-lg font-semibold text-slate-100 placeholder:text-slate-700 py-0.5 transition-colors"
-          />
-          <div className="hidden sm:flex items-center gap-2 text-xs text-slate-600 flex-shrink-0">
-            <span className={`w-1.5 h-1.5 rounded-full ${isValid ? 'bg-emerald-500' : 'bg-slate-700'}`} />
-            {rootFields.length + listFields.length} field{rootFields.length + listFields.length !== 1 ? 's' : ''}
+
+          <div className="flex flex-col ml-1 justify-center flex-1 min-w-0">
+             <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium truncate mb-0.5">
+                {project.name}
+             </div>
+             <div className="flex items-center gap-3">
+              <input
+                value={schemaName}
+                onChange={(e) => setSchemaName(e.target.value)}
+                placeholder="Schema name…"
+                className="bg-transparent border-none outline-none text-base sm:text-lg font-bold text-slate-100 placeholder:text-slate-700 w-full"
+              />
+            </div>
           </div>
+
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-slate-400 shadow-sm flex-shrink-0">
+            <span className={`w-2 h-2 rounded-full ${isValid ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-700'}`} />
+            <span className="tabular-nums">{rootFields.length + listFields.length}</span> fields
+          </div>
+        </div>
+      </div>
+
+      {/* Error Banner */}
+      <div className={`fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-40 transition-all duration-300 ease-out ${saveError ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-6 scale-90 pointer-events-none'}`}>
+        <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-2 rounded-lg text-sm font-medium shadow-lg shadow-red-900/20 flex items-center gap-2 backdrop-blur-md">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          {saveError}
         </div>
       </div>
 
@@ -506,7 +558,7 @@ export function SchemaEditor() {
       <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
         <ImportPanel onDetect={handleImport} />
 
-        <div className="bg-slate-900/40 rounded-xl border border-slate-800 p-5 hover:border-slate-700/80 transition-colors">
+        <div className="bg-slate-900/40 sm:rounded-2xl border-y sm:border border-slate-800/80 p-4 sm:p-6 hover:border-slate-700/80 transition-colors sm:shadow-sm -mx-4 sm:mx-0">
           <FieldList
             label="Root Fields"
             addLabel="Add root field"
@@ -516,7 +568,7 @@ export function SchemaEditor() {
           />
         </div>
 
-        <div className="bg-slate-900/40 rounded-xl border border-slate-800 p-5 hover:border-slate-700/80 transition-colors">
+        <div className="bg-slate-900/40 sm:rounded-2xl border-y sm:border border-slate-800/80 p-4 sm:p-6 hover:border-slate-700/80 transition-colors sm:shadow-sm -mx-4 sm:mx-0">
           <FieldList
             label="List Fields"
             addLabel="Add list field"
@@ -528,17 +580,11 @@ export function SchemaEditor() {
       </div>
 
       {/* Fixed save button */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
-        {!isValid && (
-          <span className="text-xs text-slate-600 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg shadow-lg">
-            Name + 1 field required
-          </span>
-        )}
+      <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-40 flex items-center justify-end gap-3 animate-in slide-in-from-bottom-4 fade-in duration-300">
         <button
           type="button"
           onClick={handleSave}
-          disabled={!isValid}
-          className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all shadow-lg shadow-indigo-900/50 hover:shadow-indigo-800/60 hover:-translate-y-0.5 active:translate-y-0"
+          className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-3 sm:py-2.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-lg shadow-indigo-900/50 hover:shadow-indigo-800/60 hover:-translate-y-0.5 active:translate-y-0"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V7l-4-4z" />
