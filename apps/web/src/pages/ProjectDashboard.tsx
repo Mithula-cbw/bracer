@@ -1,54 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Badge } from '../components/ui';
+import { useProjectStore } from '../store/projectStore';
 import type { Project } from '../../../../packages/core/src/types';
-
-// Mock data
-const mockProjects: Project[] = [
-  {
-    id: '1',
-    name: 'Couple Card Game',
-    created: new Date().toISOString(),
-    lastModified: new Date().toISOString(),
-    lastModifiedBy: 'User',
-    version: 1,
-    schemas: [{ id: 's1', name: 'Cards', rootFields: [], listFields: [] }],
-    contentLists: [
-      { schemaId: 's1', listFieldName: 'cards', entries: Array(42).fill({}) }
-    ],
-    syncStatus: 'synced',
-  },
-  {
-    id: '2',
-    name: 'Quiz App',
-    created: new Date().toISOString(),
-    lastModified: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    lastModifiedBy: 'User',
-    version: 1,
-    schemas: [
-      { id: 's1', name: 'Questions', rootFields: [], listFields: [] },
-      { id: 's2', name: 'Categories', rootFields: [], listFields: [] }
-    ],
-    contentLists: [
-      { schemaId: 's1', listFieldName: 'questions', entries: Array(128).fill({}) },
-      { schemaId: 's2', listFieldName: 'categories', entries: Array(5).fill({}) }
-    ],
-    syncStatus: 'local',
-  },
-  {
-    id: '3',
-    name: 'Recipe Book',
-    created: new Date().toISOString(),
-    lastModified: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-    lastModifiedBy: 'Collaborator',
-    version: 1,
-    schemas: [{ id: 's1', name: 'Recipes', rootFields: [], listFields: [] }],
-    contentLists: [
-      { schemaId: 's1', listFieldName: 'recipes', entries: Array(12).fill({}) }
-    ],
-    syncStatus: 'conflict',
-  }
-];
 
 const syncStatusConfig: Record<Project['syncStatus'], { variant: any; label: string }> = {
   synced: { variant: 'success', label: 'Synced' },
@@ -60,13 +14,22 @@ const syncStatusConfig: Record<Project['syncStatus'], { variant: any; label: str
 
 export function ProjectDashboard() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
+
+  const projects = useProjectStore((s) => s.projects);
+  const createProject = useProjectStore((s) => s.createProject);
+  const deleteProject = useProjectStore((s) => s.deleteProject);
+  const duplicateProject = useProjectStore((s) => s.duplicateProject);
+  const updateProject = useProjectStore((s) => s.updateProject);
+
   const [showNewModal, setShowNewModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [isAuthed, setIsAuthed] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; projectId: string } | null>(null);
 
-  // Close context menu on external click
+  // rename modal state
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameName, setRenameName] = useState('');
+
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
     document.addEventListener('click', handleClick);
@@ -80,27 +43,29 @@ export function ProjectDashboard() {
 
   const handleCreateProject = () => {
     if (!newProjectName.trim()) return;
-    
-    const newProject: Project = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: newProjectName.trim(),
-      created: new Date().toISOString(),
-      lastModified: new Date().toISOString(),
-      lastModifiedBy: 'Me',
-      version: 1,
-      schemas: [],
-      contentLists: [],
-      syncStatus: 'local',
-    };
-    
-    setProjects([newProject, ...projects]);
+    createProject(newProjectName.trim());
     setShowNewModal(false);
     setNewProjectName('');
   };
 
+  const handleRename = () => {
+    if (!renameId || !renameName.trim()) return;
+    updateProject(renameId, { name: renameName.trim() });
+    setRenameId(null);
+    setRenameName('');
+  };
+
+  const openRename = (projectId: string) => {
+    const p = projects.find((p) => p.id === projectId);
+    if (!p) return;
+    setRenameId(projectId);
+    setRenameName(p.name);
+    setContextMenu(null);
+  };
+
   return (
     <div className="flex flex-col md:flex-row h-[100dvh] overflow-hidden bg-slate-950 font-sans text-slate-100">
-      
+
       {/* Sidebar / Topbar on Mobile */}
       <div className="w-full md:w-[260px] md:min-w-[260px] bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 p-4 flex flex-row md:flex-col items-center md:items-stretch justify-between md:justify-start gap-4 z-10 shrink-0">
         <div className="flex items-center gap-2 mb-0 md:mb-4 px-1 md:px-2">
@@ -109,7 +74,7 @@ export function ProjectDashboard() {
           </div>
           <h1 className="font-bold text-xl text-slate-100 tracking-tight hidden sm:block md:block">Bracer</h1>
         </div>
-        
+
         <div className="flex items-center gap-3 ml-auto md:ml-0 md:flex-col">
           <button
             onClick={() => setShowNewModal(true)}
@@ -148,9 +113,8 @@ export function ProjectDashboard() {
       <div className="flex-1 bg-slate-950 p-4 md:p-6 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold mb-6 text-slate-100">Projects</h2>
-          
+
           {projects.length === 0 ? (
-            /* Empty State */
             <div className="mt-20 flex flex-col items-center justify-center text-center max-w-sm mx-auto px-4">
               <div className="w-32 h-32 mb-6 text-slate-600 bg-slate-800/50 rounded-full flex items-center justify-center">
                 <svg className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -166,15 +130,14 @@ export function ProjectDashboard() {
               </Button>
             </div>
           ) : (
-            /* Project Grid */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {projects.map((project) => {
                 const totalEntries = project.contentLists.reduce((acc, list) => acc + list.entries.length, 0);
                 const config = syncStatusConfig[project.syncStatus];
-                
+
                 return (
-                  <div 
-                    key={project.id} 
+                  <div
+                    key={project.id}
                     className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col relative group cursor-pointer hover:border-indigo-500 transition-colors shadow-sm"
                     onClick={() => navigate(`/project/${project.id}`)}
                     onContextMenu={(e) => handleContextMenu(e, project.id)}
@@ -187,7 +150,7 @@ export function ProjectDashboard() {
                         {config.label}
                       </Badge>
                     </div>
-                    
+
                     <div className="flex-1 flex flex-col gap-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-slate-900/50 rounded-md p-3 border border-slate-800/50">
@@ -205,7 +168,7 @@ export function ProjectDashboard() {
                       <span className="truncate">
                         Updated {new Date(project.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
-                      <button 
+                      <button
                         className="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -228,28 +191,47 @@ export function ProjectDashboard() {
       {/* New Project Modal */}
       {showNewModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div 
-            className="bg-slate-900 p-6 rounded-xl w-full max-w-md shadow-2xl border border-slate-700 transform animate-in fade-in zoom-in-95 duration-200"
-          >
+          <div className="bg-slate-900 p-6 rounded-xl w-full max-w-md shadow-2xl border border-slate-700 transform animate-in fade-in zoom-in-95 duration-200">
             <h2 className="text-xl font-bold mb-4 text-slate-100">New Project</h2>
             <div className="mb-6">
               <label className="block text-xs font-medium text-slate-400 mb-1">Project Name</label>
-              <input 
+              <input
                 type="text"
                 className="w-full px-3 py-2 text-sm rounded-md bg-slate-950 text-slate-100 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-600"
-                placeholder="e.g. Dialogue Trees" 
+                placeholder="e.g. Dialogue Trees"
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
                 autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreateProject();
-                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreateProject(); }}
               />
             </div>
-            
             <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setShowNewModal(false)} className="text-slate-300 hover:bg-slate-800 hover:text-slate-100">Cancel</Button>
+              <Button variant="ghost" onClick={() => { setShowNewModal(false); setNewProjectName(''); }} className="text-slate-300 hover:bg-slate-800 hover:text-slate-100">Cancel</Button>
               <Button onClick={handleCreateProject} className="bg-indigo-600 hover:bg-indigo-500 text-white border-0">Create</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Modal */}
+      {renameId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 p-6 rounded-xl w-full max-w-md shadow-2xl border border-slate-700">
+            <h2 className="text-xl font-bold mb-4 text-slate-100">Rename Project</h2>
+            <div className="mb-6">
+              <label className="block text-xs font-medium text-slate-400 mb-1">Project Name</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 text-sm rounded-md bg-slate-950 text-slate-100 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                value={renameName}
+                onChange={(e) => setRenameName(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRename(); }}
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setRenameId(null)} className="text-slate-300 hover:bg-slate-800 hover:text-slate-100">Cancel</Button>
+              <Button onClick={handleRename} className="bg-indigo-600 hover:bg-indigo-500 text-white border-0">Save</Button>
             </div>
           </div>
         </div>
@@ -257,38 +239,35 @@ export function ProjectDashboard() {
 
       {/* Context Menu */}
       {contextMenu && (
-        <div 
+        <div
           className="fixed z-50 bg-slate-900 border border-slate-700 rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in duration-100"
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button 
+          <button
             className="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2"
-            onClick={() => { console.log('Rename', contextMenu.projectId); setContextMenu(null); }}
+            onClick={() => openRename(contextMenu.projectId)}
           >
             <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
             Rename
           </button>
-          <button 
+          <button
             className="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2"
-            onClick={() => { console.log('Duplicate', contextMenu.projectId); setContextMenu(null); }}
+            onClick={() => { duplicateProject(contextMenu.projectId); setContextMenu(null); }}
           >
             <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
             Duplicate
           </button>
-          <button 
+          <button
             className="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2 border-b border-slate-700/50"
             onClick={() => { console.log('Export', contextMenu.projectId); setContextMenu(null); }}
           >
             <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
             Export
           </button>
-          <button 
+          <button
             className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2"
-            onClick={() => { 
-              setProjects(projects.filter(p => p.id !== contextMenu.projectId));
-              setContextMenu(null); 
-            }}
+            onClick={() => { deleteProject(contextMenu.projectId); setContextMenu(null); }}
           >
             <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             Delete
@@ -298,4 +277,3 @@ export function ProjectDashboard() {
     </div>
   );
 }
-
