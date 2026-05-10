@@ -1,21 +1,8 @@
-@import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 
-/* ── Tailwind v4 theme customisation ── */
-@theme {
-  /* Fonts */
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", monospace;
-
-  /* Border radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-
-  /* Accent: indigo-500 */
-  --color-accent: #6366f1;
-  --color-accent-hover: #4f46e5;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ── CSS design tokens ── */
 :root {
