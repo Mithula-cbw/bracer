@@ -10,6 +10,7 @@ export function ProjectView() {
 
   const project = useProjectStore((s) => s.projects.find((p) => p.id === projectId));
   const addSchema = useProjectStore((s) => s.addSchema);
+  const updateSchema = useProjectStore((s) => s.updateSchema);
   const deleteSchema = useProjectStore((s) => s.deleteSchema);
   const duplicateProject = useProjectStore((s) => s.duplicateProject);
 
@@ -130,7 +131,7 @@ export function ProjectView() {
                 <div
                   key={schema.id}
                   className="group bg-slate-900 border border-slate-800 hover:border-indigo-500 rounded-xl p-4 cursor-pointer transition-colors relative"
-                  onClick={() => navigate(`/project/${projectId}/schema/${schema.id}`)}
+                  onClick={() => navigate(`/project/${projectId}/content/${schema.id}`)}
                   onContextMenu={(e) => handleContextMenu(e, schema.id)}
                 >
                   {/* Header */}
@@ -163,16 +164,29 @@ export function ProjectView() {
                     </div>
                   </div>
 
-                  {/* Edit content link */}
+                  {/* Configure schema link */}
                   <button
-                    className="mt-3 w-full py-1.5 text-xs text-indigo-400 hover:text-indigo-300 border border-indigo-900/60 hover:border-indigo-700 rounded-lg transition-colors"
-                    onClick={(e) => { e.stopPropagation(); navigate(`/project/${projectId}/content/${schema.id}`); }}
+                    className="mt-3 w-full py-1.5 text-xs text-slate-400 hover:text-slate-300 border border-slate-800 hover:border-slate-600 hover:bg-slate-800/50 rounded-lg transition-all"
+                    onClick={(e) => { e.stopPropagation(); navigate(`/project/${projectId}/schema/${schema.id}`); }}
                   >
-                    Edit Content →
+                    Configure Schema →
                   </button>
                 </div>
               );
             })}
+
+            {/* Add New Schema Card */}
+            <div
+              className="group flex flex-col items-center justify-center bg-slate-900/20 border border-slate-800/60 hover:border-indigo-500/50 hover:bg-indigo-950/20 rounded-xl p-4 cursor-pointer transition-all border-dashed text-slate-500 hover:text-indigo-400 min-h-[180px]"
+              onClick={handleNewSchema}
+            >
+              <div className="w-10 h-10 rounded-full bg-slate-800/40 group-hover:bg-indigo-500/20 flex items-center justify-center mb-3 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium">New Schema</span>
+            </div>
           </div>
         )}
       </div>
@@ -188,8 +202,27 @@ export function ProjectView() {
             className="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2"
             onClick={() => { navigate(`/project/${projectId}/schema/${contextSchema.schemaId}`); setContextSchema(null); }}
           >
-            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
             Edit Schema
+          </button>
+          <button
+            className="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2 border-b border-slate-700/50 mb-1 pb-1"
+            onClick={() => {
+              const schema = project.schemas.find((s) => s.id === contextSchema.schemaId);
+              if (schema) {
+                const newName = window.prompt("Enter new schema name:", schema.name);
+                if (newName && newName.trim() && newName.trim() !== schema.name) {
+                  updateSchema(projectId!, schema.id, { name: newName.trim() });
+                }
+              }
+              setContextSchema(null);
+            }}
+          >
+            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+            Rename Schema
           </button>
           <button
             className="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2"

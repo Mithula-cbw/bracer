@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
@@ -10,6 +10,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useProjectStore } from '../store/projectStore';
+import { Modal } from '../components/ui/Modal';
 import { inferSchemaFromJSON } from '../../../../packages/core/src/schemaInference';
 import type { Schema, SchemaField, FieldType } from '../../../../packages/core/src/types';
 
@@ -307,18 +308,20 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
   const [error, setError] = useState('');
   const [detected, setDetected] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [isClearModalOpen, setClearModalOpen] = useState(false);
   const fileRef = useState<HTMLInputElement | null>(null);
 
-  const handleClear = () => {
-    if (detected) {
-      if (!window.confirm("Clearing will also remove all detected fields from the schema editor below. Continue?")) {
-        return;
-      }
-      onClear();
-    }
+  const confirmClear = () => {
+    if (detected) onClear();
     setJson('');
     setError('');
     setDetected(false);
+    setClearModalOpen(false);
+  };
+
+  const handleClearClick = () => {
+    if (detected) setClearModalOpen(true);
+    else confirmClear();
   };
 
   const loadText = (text: string) => {
@@ -466,7 +469,7 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
               Detect Fields
             </button>
             {json.trim() && (
-              <button type="button" onClick={handleClear}
+              <button type="button" onClick={handleClearClick}
                 className="px-3 py-1.5 text-sm text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors font-medium border border-transparent hover:border-red-500/20">
                 Clear
               </button>
@@ -474,6 +477,20 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
           </div>
         </div>
       </div>
+
+      <Modal 
+        isOpen={isClearModalOpen} 
+        onClose={() => setClearModalOpen(false)} 
+        title="Clear Detected Fields"
+        actions={
+          <>
+            <button onClick={() => setClearModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
+            <button onClick={confirmClear} className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Clear Fields</button>
+          </>
+        }
+      >
+        <p>Clearing will also remove all detected fields from the schema editor below. Are you sure you want to continue?</p>
+      </Modal>
     </div>
   );
 }
@@ -498,11 +515,53 @@ export function SchemaEditor() {
 
   const isValid = schemaName.trim().length > 0 && (rootFields.length + listFields.length) > 0;
 
-  const handleImport = useCallback((inferred: Schema) => {
+  // Modals state
+  const [pendingInferredSchema, setPendingInferredSchema] = useState<Schema | null>(null);
+  const [isBackModalOpen, setBackModalOpen] = useState(false);
+
+  // isDirty check
+  const isDirty = useMemo(() => {
+    if (!existing) {
+      return schemaName.trim() !== '' || rootFields.length > 0 || listFields.length > 0;
+    }
+    return (
+      schemaName.trim() !== existing.name ||
+      JSON.stringify(rootFields) !== JSON.stringify(existing.rootFields) ||
+      JSON.stringify(listFields) !== JSON.stringify(existing.listFields)
+    );
+  }, [existing, schemaName, rootFields, listFields]);
+
+  const applyInferred = (inferred: Schema) => {
     setRootFields(inferred.rootFields);
     setListFields(inferred.listFields);
-    if (!schemaName) setSchemaName(inferred.name);
-  }, [schemaName]);
+    if (!schemaName || schemaName.startsWith('Inferred Schema')) {
+      const date = new Date().toISOString().split('T')[0];
+      setSchemaName(`${inferred.name} - ${date}`);
+    }
+  };
+
+  const handleImport = (inferred: Schema) => {
+    if (rootFields.length > 0 || listFields.length > 0) {
+      setPendingInferredSchema(inferred);
+    } else {
+      applyInferred(inferred);
+    }
+  };
+
+  const confirmReplace = () => {
+    if (pendingInferredSchema) applyInferred(pendingInferredSchema);
+    setPendingInferredSchema(null);
+  };
+
+  // Handle Back
+  const handleBack = () => {
+    if (isDirty) setBackModalOpen(true);
+    else navigate(`/project/${projectId}`);
+  };
+
+  const confirmBack = () => {
+    navigate(`/project/${projectId}`);
+  };
 
   const handleSave = () => {
     if (!isValid) {
@@ -510,7 +569,18 @@ export function SchemaEditor() {
       setTimeout(() => setSaveError(''), 4000);
       return;
     }
-    if (!projectId) return;
+    if (!projectId || !project) return;
+
+    const conflict = project.schemas.find(
+      (s) => s.name.trim().toLowerCase() === schemaName.trim().toLowerCase() && s.id !== (isNew ? '' : existing?.id)
+    );
+
+    if (conflict) {
+      setSaveError('A schema with this name already exists in this project.');
+      setTimeout(() => setSaveError(''), 4000);
+      return;
+    }
+
     const schema: Schema = {
       id: isNew ? uid() : (existing?.id ?? uid()),
       name: schemaName.trim(), rootFields, listFields,
@@ -532,7 +602,7 @@ export function SchemaEditor() {
       {/* Top bar */}
       <div className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 h-14 sm:h-16 flex items-center gap-3">
-          <button type="button" onClick={() => navigate(`/project/${projectId}`)}
+          <button type="button" onClick={handleBack}
             className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-100 hover:border-slate-600 transition-all flex-shrink-0 group shadow-sm">
             <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -615,6 +685,34 @@ export function SchemaEditor() {
           Save Schema
         </button>
       </div>
+
+      <Modal 
+        isOpen={!!pendingInferredSchema} 
+        onClose={() => setPendingInferredSchema(null)} 
+        title="Replace Fields?"
+        actions={
+          <>
+            <button onClick={() => setPendingInferredSchema(null)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
+            <button onClick={confirmReplace} className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Replace</button>
+          </>
+        }
+      >
+        <p>This will overwrite the current fields in the editor with the newly detected ones. Continue?</p>
+      </Modal>
+
+      <Modal 
+        isOpen={isBackModalOpen} 
+        onClose={() => setBackModalOpen(false)} 
+        title="Discard Changes?"
+        actions={
+          <>
+            <button onClick={() => setBackModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
+            <button onClick={confirmBack} className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Discard</button>
+          </>
+        }
+      >
+        <p>You have unsaved edits. Are you sure you want to leave without saving?</p>
+      </Modal>
     </div>
   );
 }
