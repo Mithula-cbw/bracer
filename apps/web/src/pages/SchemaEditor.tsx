@@ -301,13 +301,25 @@ function FieldList({ fields, onChange, label, addLabel, hint }: {
 
 // ─── ImportPanel ──────────────────────────────────────────────────────────────
 
-function ImportPanel({ onDetect }: { onDetect: (s: Schema) => void }) {
+function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onClear: () => void }) {
   const [open, setOpen] = useState(false);
   const [json, setJson] = useState('');
   const [error, setError] = useState('');
   const [detected, setDetected] = useState(false);
   const [dragging, setDragging] = useState(false);
   const fileRef = useState<HTMLInputElement | null>(null);
+
+  const handleClear = () => {
+    if (detected) {
+      if (!window.confirm("Clearing will also remove all detected fields from the schema editor below. Continue?")) {
+        return;
+      }
+      onClear();
+    }
+    setJson('');
+    setError('');
+    setDetected(false);
+  };
 
   const loadText = (text: string) => {
     setJson(text);
@@ -374,48 +386,52 @@ function ImportPanel({ onDetect }: { onDetect: (s: Schema) => void }) {
             Fields will be auto-detected.
           </p>
 
-          {/* Drop zone */}
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-            className={`relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed py-6 transition-all cursor-pointer ${
-              dragging
-                ? 'border-indigo-500 bg-indigo-950/40 scale-[1.01]'
-                : 'border-slate-700 hover:border-slate-600 bg-slate-950/40 hover:bg-slate-800/20'
-            }`}
-            onClick={() => fileRef[0]?.click()}
-          >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-              dragging ? 'bg-indigo-600/30' : 'bg-slate-800'
-            }`}>
-              <svg className={`w-5 h-5 transition-colors ${dragging ? 'text-indigo-400' : 'text-slate-500'}`}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.338-2.32 5.75 5.75 0 011.533 7.17A4.5 4.5 0 0117.25 19.5H6.75z" />
-              </svg>
-            </div>
-            <div className="text-center">
-              <p className={`text-sm font-medium transition-colors ${dragging ? 'text-indigo-300' : 'text-slate-400'}`}>
-                {dragging ? 'Drop to load' : 'Drop JSON file here'}
-              </p>
-              <p className="text-xs text-slate-600 mt-0.5">or click to browse</p>
-            </div>
-            <input
-              ref={(el) => { fileRef[0] = el; }}
-              type="file"
-              accept=".json,application/json"
-              onChange={handleFileInput}
-              className="sr-only"
-            />
-          </div>
+          {!json.trim() && (
+            <>
+              {/* Drop zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+                className={`relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed py-6 transition-all cursor-pointer ${
+                  dragging
+                    ? 'border-indigo-500 bg-indigo-950/40 scale-[1.01]'
+                    : 'border-slate-700 hover:border-slate-600 bg-slate-950/40 hover:bg-slate-800/20'
+                }`}
+                onClick={() => fileRef[0]?.click()}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                  dragging ? 'bg-indigo-600/30' : 'bg-slate-800'
+                }`}>
+                  <svg className={`w-5 h-5 transition-colors ${dragging ? 'text-indigo-400' : 'text-slate-500'}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.338-2.32 5.75 5.75 0 011.533 7.17A4.5 4.5 0 0117.25 19.5H6.75z" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className={`text-sm font-medium transition-colors ${dragging ? 'text-indigo-300' : 'text-slate-400'}`}>
+                    {dragging ? 'Drop to load' : 'Drop JSON file here'}
+                  </p>
+                  <p className="text-xs text-slate-600 mt-0.5">or click to browse</p>
+                </div>
+                <input
+                  ref={(el) => { fileRef[0] = el; }}
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleFileInput}
+                  className="sr-only"
+                />
+              </div>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 border-t border-slate-800" />
-            <span className="text-xs text-slate-600 font-medium">or paste</span>
-            <div className="flex-1 border-t border-slate-800" />
-          </div>
+              {/* Divider */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 border-t border-slate-800" />
+                <span className="text-xs text-slate-600 font-medium">or paste</span>
+                <div className="flex-1 border-t border-slate-800" />
+              </div>
+            </>
+          )}
 
           {/* Textarea */}
           <textarea
@@ -450,8 +466,8 @@ function ImportPanel({ onDetect }: { onDetect: (s: Schema) => void }) {
               Detect Fields
             </button>
             {json.trim() && (
-              <button type="button" onClick={() => { setJson(''); setError(''); setDetected(false); }}
-                className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+              <button type="button" onClick={handleClear}
+                className="px-3 py-1.5 text-sm text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors font-medium border border-transparent hover:border-red-500/20">
                 Clear
               </button>
             )}
@@ -556,7 +572,13 @@ export function SchemaEditor() {
 
       {/* Body */}
       <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
-        <ImportPanel onDetect={handleImport} />
+        <ImportPanel 
+          onDetect={handleImport} 
+          onClear={() => {
+            setRootFields([]);
+            setListFields([]);
+          }}
+        />
 
         <div className="bg-slate-900/40 sm:rounded-2xl border-y sm:border border-slate-800/80 p-4 sm:p-6 hover:border-slate-700/80 transition-colors sm:shadow-sm -mx-4 sm:mx-0">
           <FieldList
