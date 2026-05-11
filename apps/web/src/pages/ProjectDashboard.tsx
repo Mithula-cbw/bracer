@@ -23,12 +23,14 @@ export function ProjectDashboard() {
 
   const [showNewModal, setShowNewModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectError, setNewProjectError] = useState('');
   const [isAuthed, setIsAuthed] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; projectId: string } | null>(null);
 
   // rename modal state
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameName, setRenameName] = useState('');
+  const [renameError, setRenameError] = useState('');
 
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
@@ -42,17 +44,29 @@ export function ProjectDashboard() {
   };
 
   const handleCreateProject = () => {
-    if (!newProjectName.trim()) return;
-    createProject(newProjectName.trim());
+    const trimmed = newProjectName.trim();
+    if (!trimmed) return;
+    if (projects.some((p) => p.name.trim().toLowerCase() === trimmed.toLowerCase())) {
+      setNewProjectError('A project with this name already exists.');
+      return;
+    }
+    createProject(trimmed);
     setShowNewModal(false);
     setNewProjectName('');
+    setNewProjectError('');
   };
 
   const handleRename = () => {
-    if (!renameId || !renameName.trim()) return;
-    updateProject(renameId, { name: renameName.trim() });
+    const trimmed = renameName.trim();
+    if (!renameId || !trimmed) return;
+    if (projects.some((p) => p.id !== renameId && p.name.trim().toLowerCase() === trimmed.toLowerCase())) {
+      setRenameError('A project with this name already exists.');
+      return;
+    }
+    updateProject(renameId, { name: trimmed });
     setRenameId(null);
     setRenameName('');
+    setRenameError('');
   };
 
   const openRename = (projectId: string) => {
@@ -60,6 +74,7 @@ export function ProjectDashboard() {
     if (!p) return;
     setRenameId(projectId);
     setRenameName(p.name);
+    setRenameError('');
     setContextMenu(null);
   };
 
@@ -197,16 +212,29 @@ export function ProjectDashboard() {
               <label className="block text-xs font-medium text-slate-400 mb-1">Project Name</label>
               <input
                 type="text"
-                className="w-full px-3 py-2 text-sm rounded-md bg-slate-950 text-slate-100 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-600"
+                className={`w-full px-3 py-2 text-sm rounded-md bg-slate-950 text-slate-100 border focus:ring-1 outline-none transition-all placeholder:text-slate-600 ${
+                  newProjectError 
+                    ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500' 
+                    : 'border-slate-700 focus:border-indigo-500 focus:ring-indigo-500'
+                }`}
                 placeholder="e.g. Dialogue Trees"
                 value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
+                onChange={(e) => {
+                  setNewProjectName(e.target.value);
+                  setNewProjectError('');
+                }}
                 autoFocus
                 onKeyDown={(e) => { if (e.key === 'Enter') handleCreateProject(); }}
               />
+              {newProjectError && (
+                <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  {newProjectError}
+                </p>
+              )}
             </div>
             <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => { setShowNewModal(false); setNewProjectName(''); }} className="text-slate-300 hover:bg-slate-800 hover:text-slate-100">Cancel</Button>
+              <Button variant="ghost" onClick={() => { setShowNewModal(false); setNewProjectName(''); setNewProjectError(''); }} className="text-slate-300 hover:bg-slate-800 hover:text-slate-100">Cancel</Button>
               <Button onClick={handleCreateProject} className="bg-indigo-600 hover:bg-indigo-500 text-white border-0">Create</Button>
             </div>
           </div>
@@ -222,15 +250,28 @@ export function ProjectDashboard() {
               <label className="block text-xs font-medium text-slate-400 mb-1">Project Name</label>
               <input
                 type="text"
-                className="w-full px-3 py-2 text-sm rounded-md bg-slate-950 text-slate-100 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                className={`w-full px-3 py-2 text-sm rounded-md bg-slate-950 text-slate-100 border focus:ring-1 outline-none transition-all ${
+                  renameError 
+                    ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500' 
+                    : 'border-slate-700 focus:border-indigo-500 focus:ring-indigo-500'
+                }`}
                 value={renameName}
-                onChange={(e) => setRenameName(e.target.value)}
+                onChange={(e) => {
+                  setRenameName(e.target.value);
+                  setRenameError('');
+                }}
                 autoFocus
                 onKeyDown={(e) => { if (e.key === 'Enter') handleRename(); }}
               />
+              {renameError && (
+                <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  {renameError}
+                </p>
+              )}
             </div>
             <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setRenameId(null)} className="text-slate-300 hover:bg-slate-800 hover:text-slate-100">Cancel</Button>
+              <Button variant="ghost" onClick={() => { setRenameId(null); setRenameError(''); }} className="text-slate-300 hover:bg-slate-800 hover:text-slate-100">Cancel</Button>
               <Button onClick={handleRename} className="bg-indigo-600 hover:bg-indigo-500 text-white border-0">Save</Button>
             </div>
           </div>
