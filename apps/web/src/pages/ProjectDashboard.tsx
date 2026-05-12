@@ -198,6 +198,19 @@ export function ProjectDashboard() {
                   </div>
                 );
               })}
+
+              {/* Add New Project Card */}
+              <div
+                className="group flex flex-col items-center justify-center bg-slate-900/20 border border-slate-800/60 hover:border-indigo-500/50 hover:bg-indigo-950/20 rounded-xl p-4 cursor-pointer transition-all border-dashed text-slate-500 hover:text-indigo-400 min-h-[180px]"
+                onClick={() => setShowNewModal(true)}
+              >
+                <div className="w-10 h-10 rounded-full bg-slate-800/40 group-hover:bg-indigo-500/20 flex items-center justify-center mb-3 transition-colors">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </div>
+                <span className="text-sm font-medium">New Project</span>
+              </div>
             </div>
           )}
         </div>
