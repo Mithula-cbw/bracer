@@ -220,7 +220,7 @@ export function ProjectView() {
                 onChange={e => setCopyFromSource(e.target.value)}
                 className="bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
               >
-                <option value="">Copy schema from ▾</option>
+                <option value="">Copy schema from</option>
                 {thisProjectSchemas.length > 0 && (
                   <optgroup label="This project">
                     {thisProjectSchemas.map(s => <option key={s.id} value={`${project.id}|${s.id}`}>{s.name}</option>)}
