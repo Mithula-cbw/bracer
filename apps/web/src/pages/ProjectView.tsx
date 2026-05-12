@@ -31,6 +31,16 @@ export function ProjectView() {
   const [copyFromSource, setCopyFromSource] = useState('');
   const [copyNewSchemaName, setCopyNewSchemaName] = useState('');
 
+  const [copySearch, setCopySearch] = useState('');
+  const [showCopyDropdown, setShowCopyDropdown] = useState(false);
+  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const handleClick = () => setShowCopyDropdown(false);
+    if (showCopyDropdown) document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showCopyDropdown]);
+
   useEffect(() => {
     if (project && !isEditingProjectName) {
       setProjectNameInput(project.name);
@@ -68,6 +78,17 @@ export function ProjectView() {
 
   const thisProjectSchemas = project.schemas;
   const otherProjects = allProjects.filter((p) => p.id !== project.id && p.schemas.length > 0);
+
+  const toggleProjectExpand = (e: React.MouseEvent, pid: string) => {
+    e.stopPropagation();
+    setExpandedProjects(prev => ({ ...prev, [pid]: !prev[pid] }));
+  };
+
+  const allProjectsWithSchemas = [project, ...otherProjects].filter(p => p.schemas.length > 0);
+  const filteredProjects = allProjectsWithSchemas.map(p => {
+    const matchingSchemas = p.schemas.filter(s => s.name.toLowerCase().includes(copySearch.toLowerCase()));
+    return { ...p, matchingSchemas };
+  }).filter(p => p.matchingSchemas.length > 0);
 
   const handleCreateCopy = () => {
     if (!copyFromSource || !copyNewSchemaName.trim()) return;
@@ -215,25 +236,79 @@ export function ProjectView() {
           
           <div className="flex flex-wrap items-center gap-3">
             {!copyFromSource ? (
-              <select 
-                value={copyFromSource} 
-                onChange={e => setCopyFromSource(e.target.value)}
-                className="bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
-              >
-                <option value="">Copy schema from</option>
-                {thisProjectSchemas.length > 0 && (
-                  <optgroup label="This project">
-                    {thisProjectSchemas.map(s => <option key={s.id} value={`${project.id}|${s.id}`}>{s.name}</option>)}
-                  </optgroup>
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowCopyDropdown(!showCopyDropdown); }}
+                  className="bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-200 rounded-lg px-3 py-1.5 text-sm flex items-center gap-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
+                >
+                  Copy schema from
+                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                
+                {showCopyDropdown && (
+                  <div 
+                    className="absolute right-0 sm:right-auto sm:left-0 top-full mt-2 w-80 max-h-[400px] flex flex-col bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="p-3 border-b border-slate-800">
+                      <div className="relative">
+                        <svg className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Search schemas..."
+                          className="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-indigo-500 transition-colors"
+                          value={copySearch}
+                          onChange={e => setCopySearch(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="overflow-y-auto p-2 flex-1 max-h-64">
+                      {filteredProjects.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-slate-500">No schemas found</div>
+                      ) : (
+                        filteredProjects.map(p => {
+                          const isExpanded = copySearch ? true : !!expandedProjects[p.id];
+                          return (
+                            <div key={p.id} className="mb-1 last:mb-0">
+                              <button
+                                onClick={(e) => toggleProjectExpand(e, p.id)}
+                                className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-800/50 text-left transition-colors group"
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <svg className={`w-4 h-4 text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                                  <span className="text-sm font-medium text-slate-200 truncate">{p.id === project.id ? 'This Project' : p.name}</span>
+                                </div>
+                                <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded font-medium">{p.matchingSchemas.length}</span>
+                              </button>
+                              
+                              {isExpanded && (
+                                <div className="grid grid-cols-2 gap-1.5 mt-1 mb-2 pl-3 pr-1">
+                                  {p.matchingSchemas.map(s => (
+                                    <button
+                                      key={s.id}
+                                      onClick={() => {
+                                        setCopyFromSource(`${p.id}|${s.id}`);
+                                        setShowCopyDropdown(false);
+                                        setCopySearch('');
+                                      }}
+                                      className="text-left px-3 py-2 bg-slate-800/30 border border-slate-700/50 hover:bg-indigo-600 hover:border-indigo-500 rounded-md text-xs text-slate-300 hover:text-white truncate transition-colors"
+                                      title={s.name}
+                                    >
+                                      {s.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
                 )}
-                {otherProjects.length > 0 && (
-                  <optgroup label="Other projects">
-                    {otherProjects.map(p => 
-                      p.schemas.map(s => <option key={`${p.id}|${s.id}`} value={`${p.id}|${s.id}`}>{p.name} - {s.name}</option>)
-                    )}
-                  </optgroup>
-                )}
-              </select>
+              </div>
             ) : (
               <div className="flex items-center gap-2 bg-slate-900 border border-indigo-500/50 rounded-lg p-1 pl-3">
                 <span className="text-xs text-slate-400 whitespace-nowrap">New name:</span>
