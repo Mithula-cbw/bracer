@@ -128,8 +128,8 @@ export function FieldInput({
         <select value={(value as string) ?? ''}
           onChange={(e) => onChange(e.target.value)}
           className={`${inputBase} cursor-pointer`}>
-          <option value="">— select —</option>
-          {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+          <option value="" className="bg-slate-800 text-slate-100">— select —</option>
+          {opts.map((o) => <option key={o} value={o} className="bg-slate-800 text-slate-100">{o}</option>)}
         </select>
       );
     }

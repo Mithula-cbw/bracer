@@ -242,7 +242,8 @@ export function ContentEditor() {
 
   const handleExport = () => {
     const json = buildJSON(project, schemaId!);
-    const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+    const jsonStr = JSON.stringify(json, null, 2).replace(/"__FLOAT__(.*?)__FLOAT__"/g, '$1');
+    const blob = new Blob([jsonStr], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `${schema.name.toLowerCase().replace(/\s+/g, '-')}.json`;

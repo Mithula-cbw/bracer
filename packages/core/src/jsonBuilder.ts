@@ -1,7 +1,9 @@
 import type { Project, Schema, SchemaField, Entry } from './types';
 
 export class FloatNumber {
-  constructor(public value: string) {
+  value: string;
+  constructor(value: string) {
+    this.value = value;
     if (!this.value.includes('.')) {
       this.value += '.0';
     }

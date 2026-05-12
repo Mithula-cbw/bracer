@@ -21,6 +21,8 @@ const FIELD_TYPES: { value: FieldType; icon: string; label: string }[] = [
   { value: 'long-text',       icon: '¶',  label: 'Long Text' },
   { value: 'number',          icon: '#',  label: 'Number' },
   { value: 'number-nullable', icon: '#?', label: 'Number (nullable)' },
+  { value: 'float',           icon: '.#', label: 'Float' },
+  { value: 'float-nullable',  icon: '.#?',label: 'Float (nullable)' },
   { value: 'toggle',          icon: '◐',  label: 'Toggle' },
   { value: 'dropdown',        icon: '▾',  label: 'Dropdown' },
   { value: 'tags',            icon: '⊞',  label: 'Tags' },
@@ -184,7 +186,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
             className="appearance-none pl-2 sm:pl-3 pr-6 sm:pr-8 py-1.5 text-xs rounded-lg bg-slate-950/50 border border-slate-800/80 text-slate-300 outline-none focus:border-indigo-500 cursor-pointer transition-all hover:border-slate-600 font-medium shadow-inner"
           >
             {FIELD_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
+              <option key={t.value} value={t.value} className="bg-slate-900 text-slate-300">{t.icon} {t.label}</option>
             ))}
           </select>
           <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
