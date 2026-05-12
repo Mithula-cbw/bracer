@@ -1,20 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProjectStore } from '../store/projectStore';
 import { Badge } from '../components/ui';
 import type { Schema } from '../../../../packages/core/src/types';
+import { buildJSON } from '../../../../packages/core/src/jsonBuilder';
 
 export function ProjectView() {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const project = useProjectStore((s) => s.projects.find((p) => p.id === projectId));
+  const allProjects = useProjectStore((s) => s.projects);
   const addSchema = useProjectStore((s) => s.addSchema);
   const updateSchema = useProjectStore((s) => s.updateSchema);
   const deleteSchema = useProjectStore((s) => s.deleteSchema);
   const duplicateProject = useProjectStore((s) => s.duplicateProject);
+  const updateProject = useProjectStore((s) => s.updateProject);
+  const copySchemaStore = useProjectStore((s) => s.copySchema);
 
   const [contextSchema, setContextSchema] = useState<{ x: number; y: number; schemaId: string } | null>(null);
+
+  const [isEditingProjectName, setIsEditingProjectName] = useState(false);
+  const [projectNameInput, setProjectNameInput] = useState('');
+
+  const [copyFromSource, setCopyFromSource] = useState('');
+  const [copyNewSchemaName, setCopyNewSchemaName] = useState('');
+
+  useEffect(() => {
+    if (project && !isEditingProjectName) {
+      setProjectNameInput(project.name);
+    }
+  }, [project, isEditingProjectName]);
 
   if (!project) {
     return (
@@ -45,6 +61,38 @@ export function ProjectView() {
   };
   const sync = syncConfig[project.syncStatus];
 
+  const thisProjectSchemas = project.schemas;
+  const otherProjects = allProjects.filter((p) => p.id !== project.id && p.schemas.length > 0);
+
+  const handleCreateCopy = () => {
+    if (!copyFromSource || !copyNewSchemaName.trim()) return;
+    const [sourceProjectId, sourceSchemaId] = copyFromSource.split('|');
+    updateProject(project.id, { lastModified: new Date().toISOString() });
+    copySchemaStore(sourceProjectId, sourceSchemaId, project.id, copyNewSchemaName.trim());
+    setCopyFromSource('');
+    setCopyNewSchemaName('');
+  };
+
+  const handleDownloadJSON = () => {
+    const result: any = {
+      project: project.name,
+      schemas: {}
+    };
+    project.schemas.forEach(schema => {
+      result.schemas[schema.name] = buildJSON(project, schema.id);
+    });
+    
+    const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${project.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div
       className="min-h-screen bg-slate-950 text-slate-100 font-sans"
@@ -65,8 +113,43 @@ export function ProjectView() {
 
           <span className="text-slate-700 hidden sm:inline">／</span>
 
-          <h1 className="font-semibold text-lg text-slate-100 flex-1 truncate">{project.name}</h1>
+          {isEditingProjectName ? (
+            <input 
+              autoFocus
+              className="bg-slate-900 border border-indigo-500 text-slate-100 rounded px-2 py-0.5 text-base font-semibold outline-none focus:ring-1 focus:ring-indigo-500 flex-1"
+              value={projectNameInput}
+              onChange={e => setProjectNameInput(e.target.value)}
+              onBlur={() => {
+                setIsEditingProjectName(false);
+                if (projectNameInput.trim() && projectNameInput !== project.name) {
+                  updateProject(project.id, { name: projectNameInput.trim() });
+                } else {
+                  setProjectNameInput(project.name);
+                }
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                } else if (e.key === 'Escape') {
+                  setProjectNameInput(project.name);
+                  setIsEditingProjectName(false);
+                }
+              }}
+            />
+          ) : (
+            <h1 
+              className="font-semibold text-lg text-slate-100 flex-1 truncate hover:text-indigo-400 cursor-pointer transition-colors"
+              onClick={() => {
+                setProjectNameInput(project.name);
+                setIsEditingProjectName(true);
+              }}
+              title="Click to rename project"
+            >
+              {project.name}
+            </h1>
+          )}
 
+          <Badge variant="default">v{project.version}</Badge>
           <Badge variant={sync.variant} dot>{sync.label}</Badge>
 
           <button
@@ -97,9 +180,74 @@ export function ProjectView() {
           ))}
         </div>
 
-        {/* Schemas */}
-        <div className="mb-4 flex items-center justify-between">
+        {/* Schemas Header & Actions */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Schemas</h2>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            {!copyFromSource ? (
+              <select 
+                value={copyFromSource} 
+                onChange={e => setCopyFromSource(e.target.value)}
+                className="bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
+              >
+                <option value="">Copy schema from ▾</option>
+                {thisProjectSchemas.length > 0 && (
+                  <optgroup label="This project">
+                    {thisProjectSchemas.map(s => <option key={s.id} value={`${project.id}|${s.id}`}>{s.name}</option>)}
+                  </optgroup>
+                )}
+                {otherProjects.length > 0 && (
+                  <optgroup label="Other projects">
+                    {otherProjects.map(p => 
+                      p.schemas.map(s => <option key={`${p.id}|${s.id}`} value={`${p.id}|${s.id}`}>{p.name} - {s.name}</option>)
+                    )}
+                  </optgroup>
+                )}
+              </select>
+            ) : (
+              <div className="flex items-center gap-2 bg-slate-900 border border-indigo-500/50 rounded-lg p-1 pl-3">
+                <span className="text-xs text-slate-400 whitespace-nowrap">New name:</span>
+                <input 
+                  autoFocus
+                  className="bg-transparent border-none text-sm text-slate-100 focus:outline-none focus:ring-0 w-32" 
+                  value={copyNewSchemaName}
+                  onChange={e => setCopyNewSchemaName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleCreateCopy();
+                    if (e.key === 'Escape') setCopyFromSource('');
+                  }}
+                  placeholder="e.g. users-copy"
+                />
+                <button 
+                  onClick={handleCreateCopy} 
+                  disabled={!copyNewSchemaName.trim()}
+                  className="px-2 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded transition-colors"
+                >
+                  Copy
+                </button>
+                <button 
+                  onClick={() => { setCopyFromSource(''); setCopyNewSchemaName(''); }} 
+                  className="text-slate-500 hover:text-slate-300 px-1"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={handleDownloadJSON}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-200 text-sm font-medium rounded-lg transition-colors"
+              title="Export entire project"
+            >
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span className="hidden sm:inline">Download JSON</span>
+            </button>
+          </div>
         </div>
 
         {project.schemas.length === 0 ? (
