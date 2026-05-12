@@ -3,6 +3,8 @@ export type FieldType =
   | 'long-text'
   | 'number'
   | 'number-nullable'
+  | 'float'
+  | 'float-nullable'
   | 'toggle'
   | 'dropdown'
   | 'tags'

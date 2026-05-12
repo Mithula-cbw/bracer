@@ -37,6 +37,8 @@ function inferFieldType(
   // number
   if (typeof value === 'number') {
     const hasNull = vals.some((v) => v === null);
+    const isFloat = vals.some((v) => typeof v === 'number' && v % 1 !== 0);
+    if (isFloat) return hasNull ? 'float-nullable' : 'float';
     return hasNull ? 'number-nullable' : 'number';
   }
 

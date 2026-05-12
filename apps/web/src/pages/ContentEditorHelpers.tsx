@@ -89,16 +89,30 @@ export function FieldInput({
       );
     case 'number':
       return (
-        <input type="number"
+        <input type="number" step="any"
           value={(value as number) ?? ''}
           onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
           placeholder="0" className={inputBase} />
       );
     case 'number-nullable':
       return (
-        <input type="number"
+        <input type="number" step="any"
           value={value === null || value === undefined ? '' : (value as number)}
           onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+          placeholder="null (empty = null)" className={inputBase} />
+      );
+    case 'float':
+      return (
+        <input type="number" step="any"
+          value={(value as string) ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="0.0" className={inputBase} />
+      );
+    case 'float-nullable':
+      return (
+        <input type="number" step="any"
+          value={value === null || value === undefined ? '' : (value as string)}
+          onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
           placeholder="null (empty = null)" className={inputBase} />
       );
     case 'toggle':
@@ -195,6 +209,8 @@ function blankValues(fields: SchemaField[]): Record<string, unknown> {
       : f.type === 'tags' ? []
       : f.type === 'number' ? 0
       : f.type === 'number-nullable' ? null
+      : f.type === 'float' ? '0.0'
+      : f.type === 'float-nullable' ? null
       : f.type === 'object-optional' ? null
       : '';
   });
@@ -220,7 +236,20 @@ export function EntryForm({
 
   const set = (name: string, v: unknown) => setValues((prev) => ({ ...prev, [name]: v }));
 
+  const [errors, setErrors] = useState<string[]>([]);
+
   const handleSave = () => {
+    const missing = fields
+      .filter((f) => {
+        if (!f.required) return false;
+        const v = values[f.name];
+        if (v === null || v === undefined || v === '') return true;
+        if (Array.isArray(v) && v.length === 0) return true;
+        return false;
+      })
+      .map((f) => f.label || f.name);
+    if (missing.length > 0) { setErrors(missing); return; }
+    setErrors([]);
     onSave(values);
     if (mode === 'add') {
       setValues(blankValues(fields));
@@ -261,6 +290,11 @@ export function EntryForm({
         ))}
       </div>
 
+      {errors.length > 0 && (
+        <div className="text-sm px-4 py-2.5 rounded-xl border bg-red-900/20 border-red-700/40 text-red-400">
+          Required: {errors.join(', ')}
+        </div>
+      )}
       <div className="flex items-center gap-3 pt-1 border-t border-slate-800/60">
         <button
           type="button"
