@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProjectStore } from '../store/projectStore';
-import { Badge } from '../components/ui';
+import { Badge, Button } from '../components/ui';
 import type { Schema } from '../../../../packages/core/src/types';
 import { buildJSON } from '../../../../packages/core/src/jsonBuilder';
 
@@ -19,6 +19,11 @@ export function ProjectView() {
   const copySchemaStore = useProjectStore((s) => s.copySchema);
 
   const [contextSchema, setContextSchema] = useState<{ x: number; y: number; schemaId: string } | null>(null);
+
+  // rename schema modal state
+  const [renameSchemaId, setRenameSchemaId] = useState<string | null>(null);
+  const [renameSchemaName, setRenameSchemaName] = useState('');
+  const [renameSchemaError, setRenameSchemaError] = useState('');
 
   const [isEditingProjectName, setIsEditingProjectName] = useState(false);
   const [projectNameInput, setProjectNameInput] = useState('');
@@ -71,6 +76,30 @@ export function ProjectView() {
     copySchemaStore(sourceProjectId, sourceSchemaId, project.id, copyNewSchemaName.trim());
     setCopyFromSource('');
     setCopyNewSchemaName('');
+  };
+
+  const handleRenameSchema = () => {
+    const trimmed = renameSchemaName.trim();
+    if (!renameSchemaId || !trimmed || !project) return;
+    
+    if (project.schemas.some(s => s.id !== renameSchemaId && s.name.trim().toLowerCase() === trimmed.toLowerCase())) {
+      setRenameSchemaError('A schema with this name already exists.');
+      return;
+    }
+
+    updateSchema(project.id, renameSchemaId, { name: trimmed });
+    setRenameSchemaId(null);
+    setRenameSchemaName('');
+    setRenameSchemaError('');
+  };
+
+  const openRenameSchema = (schemaId: string) => {
+    const schema = project?.schemas.find((s) => s.id === schemaId);
+    if (!schema) return;
+    setRenameSchemaId(schemaId);
+    setRenameSchemaName(schema.name);
+    setRenameSchemaError('');
+    setContextSchema(null);
   };
 
   const handleDownloadJSON = () => {
@@ -339,6 +368,43 @@ export function ProjectView() {
         )}
       </div>
 
+      {/* Rename Schema Modal */}
+      {renameSchemaId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 p-6 rounded-xl w-full max-w-md shadow-2xl border border-slate-700">
+            <h2 className="text-xl font-bold mb-4 text-slate-100">Rename Schema</h2>
+            <div className="mb-6">
+              <label className="block text-xs font-medium text-slate-400 mb-1">Schema Name</label>
+              <input
+                type="text"
+                className={`w-full px-3 py-2 text-sm rounded-md bg-slate-950 text-slate-100 border focus:ring-1 outline-none transition-all ${
+                  renameSchemaError 
+                    ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500' 
+                    : 'border-slate-700 focus:border-indigo-500 focus:ring-indigo-500'
+                }`}
+                value={renameSchemaName}
+                onChange={(e) => {
+                  setRenameSchemaName(e.target.value);
+                  setRenameSchemaError('');
+                }}
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRenameSchema(); }}
+              />
+              {renameSchemaError && (
+                <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  {renameSchemaError}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => { setRenameSchemaId(null); setRenameSchemaError(''); }} className="text-slate-300 hover:bg-slate-800 hover:text-slate-100">Cancel</Button>
+              <Button onClick={handleRenameSchema} className="bg-indigo-600 hover:bg-indigo-500 text-white border-0">Save</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Context Menu */}
       {contextSchema && (
         <div
@@ -358,16 +424,7 @@ export function ProjectView() {
           </button>
           <button
             className="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2 border-b border-slate-700/50 mb-1 pb-1"
-            onClick={() => {
-              const schema = project.schemas.find((s) => s.id === contextSchema.schemaId);
-              if (schema) {
-                const newName = window.prompt("Enter new schema name:", schema.name);
-                if (newName && newName.trim() && newName.trim() !== schema.name) {
-                  updateSchema(projectId!, schema.id, { name: newName.trim() });
-                }
-              }
-              setContextSchema(null);
-            }}
+            onClick={() => openRenameSchema(contextSchema.schemaId)}
           >
             <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
             Rename Schema
