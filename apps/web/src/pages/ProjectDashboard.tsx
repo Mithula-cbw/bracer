@@ -32,6 +32,15 @@ export function ProjectDashboard() {
   const [renameName, setRenameName] = useState('');
   const [renameError, setRenameError] = useState('');
 
+  const [showBanner, setShowBanner] = useState(() => {
+    return localStorage.getItem('bracer_hide_desktop_banner') !== 'true';
+  });
+
+  const dismissBanner = () => {
+    localStorage.setItem('bracer_hide_desktop_banner', 'true');
+    setShowBanner(false);
+  };
+
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
     document.addEventListener('click', handleClick);
@@ -130,7 +139,7 @@ export function ProjectDashboard() {
 
             <div className="hidden md:flex flex-col gap-2 px-2 text-xs text-slate-500 pb-2">
               <div className="flex items-center gap-2">
-                <span>Created by Mithula</span>
+                <span>Created by Mithula Chanthuka</span>
               </div>
               <div className="flex items-center gap-2">
                 <a href="https://github.com/Mithula-cbw/bracer" target="_blank" rel="noreferrer" className="hover:text-slate-300 transition-colors flex items-center gap-1.5">
@@ -150,30 +159,42 @@ export function ProjectDashboard() {
         <div className="max-w-6xl mx-auto">
           
           {/* Desktop App Banner */}
-          <div className="mb-8 relative overflow-hidden bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border border-emerald-500/20 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-sm">
-            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div className="relative z-10 flex-1">
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 tracking-tight">Use Bracer a lot?</h3>
-              <p className="text-emerald-200/80 text-sm sm:text-base max-w-lg">
-                Download our dedicated desktop application for a native experience. Available for Windows and Linux.
-              </p>
-            </div>
-            
-            <div className="relative z-10 shrink-0">
-              {/* TODO: Add link when releases are available */}
+          {showBanner && (
+            <div className="mb-8 relative overflow-hidden bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/20 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-sm">
               <button 
-                onClick={() => {}} 
-                className="px-5 py-2.5 bg-white text-emerald-950 hover:bg-emerald-50 font-semibold rounded-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all hover:scale-105 active:scale-95 flex items-center gap-2 text-sm"
+                onClick={dismissBanner}
+                className="absolute top-3 right-3 z-20 text-indigo-300 hover:text-white transition-colors p-1"
+                aria-label="Dismiss banner"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                Download Desktop App
               </button>
+              
+              <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              
+              <div className="relative z-10 flex-1 pr-4 sm:pr-0">
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 tracking-tight">Use Bracer a lot?</h3>
+                <p className="text-indigo-200/80 text-sm sm:text-base max-w-lg">
+                  Download our dedicated desktop application for a native experience. Available for Windows and Linux.
+                </p>
+              </div>
+              
+              <div className="relative z-10 shrink-0 mt-2 sm:mt-0">
+                {/* TODO: Add link when releases are available */}
+                <button 
+                  onClick={() => {}} 
+                  className="px-5 py-2.5 bg-white text-indigo-950 hover:bg-indigo-50 font-semibold rounded-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all hover:scale-105 active:scale-95 flex items-center gap-2 text-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download Desktop App
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <h2 className="text-2xl font-bold mb-6 text-slate-100">Projects</h2>
 
