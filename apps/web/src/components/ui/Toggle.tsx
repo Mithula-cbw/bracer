@@ -16,35 +16,27 @@ export function Toggle({ checked, onChange, label, disabled = false, id }: Toggl
         disabled ? 'opacity-50 cursor-not-allowed' : '',
       ].join(' ')}
     >
-      <span className="relative">
-        <input
-          type="checkbox"
-          id={toggleId}
-          checked={checked}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.checked)}
-          className="sr-only peer"
-        />
-        {/* Track */}
+      <button
+        type="button"
+        id={toggleId}
+        disabled={disabled}
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={[
+          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900',
+          checked ? 'bg-indigo-600' : 'bg-slate-700',
+        ].join(' ')}
+      >
         <span
           className={[
-            'block w-10 h-5.5 rounded-full transition-colors duration-200',
-            'bg-[var(--bg-tertiary)] border border-[var(--border)]',
-            'peer-checked:bg-[var(--accent)] peer-checked:border-[var(--accent)]',
-            'peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--accent)] peer-focus-visible:ring-offset-1',
+            'inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200',
+            checked ? 'translate-x-6' : 'translate-x-1',
           ].join(' ')}
         />
-        {/* Thumb */}
-        <span
-          className={[
-            'absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-sm',
-            'transition-transform duration-200',
-            checked ? 'translate-x-[18px]' : 'translate-x-0',
-          ].join(' ')}
-        />
-      </span>
+      </button>
       {label && (
-        <span className="text-sm text-[var(--text-secondary)]">{label}</span>
+        <span className="text-sm text-slate-300">{label}</span>
       )}
     </label>
   );

@@ -1,5 +1,18 @@
 import type { Project, Schema, SchemaField, Entry } from './types';
 
+export class FloatNumber {
+  value: string;
+  constructor(value: string) {
+    this.value = value;
+    if (!this.value.includes('.')) {
+      this.value += '.0';
+    }
+  }
+  toJSON() {
+    return `__FLOAT__${this.value}__FLOAT__`;
+  }
+}
+
 /** Resolve a single entry value for a field (returns undefined if missing) */
 function resolveField(field: SchemaField, entry: Entry): unknown {
   const raw = entry[field.name];
@@ -9,7 +22,14 @@ function resolveField(field: SchemaField, entry: Entry): unknown {
       return typeof raw === 'number' ? raw : Number(raw ?? 0);
 
     case 'number-nullable':
-      return raw === null || raw === undefined ? null : Number(raw);
+      return raw === null || raw === undefined || raw === '' ? null : Number(raw);
+
+    case 'float':
+      return new FloatNumber(String(raw ?? '0.0'));
+
+    case 'float-nullable':
+      if (raw === null || raw === undefined || raw === '') return null;
+      return new FloatNumber(String(raw));
 
     case 'toggle':
       return Boolean(raw);
