@@ -230,9 +230,17 @@ export function ProjectDashboard() {
                       <h3 className="font-semibold text-lg text-slate-100 truncate pr-4">
                         {project.name}
                       </h3>
-                      <Badge variant={config.variant} dot>
-                        {config.label}
-                      </Badge>
+                      <button
+                        className="p-1.5 -mr-1.5 -mt-1 rounded-md hover:bg-slate-800 hover:text-slate-200 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleContextMenu(e, project.id);
+                        }}
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
+                      </button>
                     </div>
 
                     <div className="flex-1 flex flex-col gap-3">
@@ -252,17 +260,9 @@ export function ProjectDashboard() {
                       <span className="truncate">
                         Updated {new Date(project.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
-                      <button
-                        className="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleContextMenu(e, project.id);
-                        }}
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                        </svg>
-                      </button>
+                      <Badge variant={config.variant} dot>
+                        {config.label}
+                      </Badge>
                     </div>
                   </div>
                 );
