@@ -92,12 +92,21 @@ export const useProjectStore = create<ProjectStore>()(
       },
 
       duplicateProject(id) {
-        const source = get().projects.find((p) => p.id === id);
+        const projects = get().projects;
+        const source = projects.find((p) => p.id === id);
         if (!source) throw new Error(`Project ${id} not found`);
+
+        let newName = `${source.name} (Copy)`;
+        let copyNumber = 1;
+        while (projects.some((p) => p.name.trim().toLowerCase() === newName.toLowerCase())) {
+          copyNumber++;
+          newName = `${source.name} (Copy ${copyNumber})`;
+        }
+
         const copy: Project = {
           ...source,
           id: uid(),
-          name: `${source.name} (Copy)`,
+          name: newName,
           created: now(),
           lastModified: now(),
           version: 1,
