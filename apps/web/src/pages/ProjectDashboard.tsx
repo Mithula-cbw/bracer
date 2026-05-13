@@ -32,6 +32,8 @@ export function ProjectDashboard() {
   const [renameName, setRenameName] = useState('');
   const [renameError, setRenameError] = useState('');
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [showBanner, setShowBanner] = useState(() => {
     return localStorage.getItem('bracer_hide_desktop_banner') !== 'true';
   });
@@ -86,6 +88,8 @@ export function ProjectDashboard() {
     setRenameError('');
     setContextMenu(null);
   };
+
+  const filteredProjects = projects.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="flex flex-col md:flex-row h-[100dvh] overflow-hidden bg-slate-950 font-sans text-slate-100">
@@ -196,7 +200,40 @@ export function ProjectDashboard() {
             </div>
           )}
 
-          <h2 className="text-2xl font-bold mb-6 text-slate-100">Projects</h2>
+          <div className="flex items-center justify-between mb-6 gap-4">
+            <h2 className="text-2xl font-bold text-slate-100">Projects</h2>
+            
+            {projects.length > 0 && (
+              <div className="relative group flex items-center justify-end flex-shrink-0">
+                <svg className={`w-4 h-4 text-slate-500 absolute pointer-events-none group-focus-within:text-indigo-400 transition-all z-10 ${
+                  searchQuery ? 'left-[10px] sm:left-3' : 'left-[10px] sm:left-3'
+                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input 
+                  type="text"
+                  placeholder="Search projects..."
+                  className={`bg-slate-900 border border-slate-800 hover:border-slate-700 text-sm rounded-full py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-sm cursor-pointer focus:cursor-text h-[36px] ${
+                    searchQuery 
+                      ? 'w-[160px] sm:w-[220px] md:w-[260px] pl-[34px] pr-8 text-slate-100 placeholder:text-slate-500' 
+                      : 'w-[36px] sm:w-[160px] pl-[34px] pr-0 sm:pr-3 text-transparent sm:text-slate-100 placeholder:text-transparent sm:placeholder:text-slate-500'
+                  }`}
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 text-slate-500 hover:text-slate-300 bg-slate-900 z-10"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           {projects.length === 0 ? (
             <div className="mt-20 flex flex-col items-center justify-center text-center max-w-sm mx-auto px-4">
@@ -213,9 +250,24 @@ export function ProjectDashboard() {
                 Create your first project
               </Button>
             </div>
+          ) : filteredProjects.length === 0 && searchQuery ? (
+            <div className="mt-20 flex flex-col items-center justify-center text-center max-w-sm mx-auto px-4">
+              <div className="w-24 h-24 mb-6 text-slate-600 bg-slate-800/30 rounded-full flex items-center justify-center">
+                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-slate-100">No projects found</h3>
+              <p className="text-slate-400 mb-6 text-sm">
+                We couldn't find any projects matching "{searchQuery}".
+              </p>
+              <Button onClick={() => setSearchQuery('')} variant="ghost" className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10">
+                Clear search
+              </Button>
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {projects.map((project) => {
+              {filteredProjects.map((project) => {
                 const totalEntries = project.contentLists.reduce((acc, list) => acc + list.entries.length, 0);
                 const config = syncStatusConfig[project.syncStatus];
 
