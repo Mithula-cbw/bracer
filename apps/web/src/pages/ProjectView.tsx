@@ -289,9 +289,16 @@ export function ProjectView() {
                 className="focus:outline-none"
               >
                 <div className="hover:opacity-80 transition-opacity">
-                  <Badge variant={sync.variant as any} dot>
-                    <span className="whitespace-nowrap max-w-[80px] sm:max-w-none truncate block sm:inline">{sync.label}</span>
-                  </Badge>
+                  {/* Desktop full badge */}
+                  <div className="hidden sm:block">
+                    <Badge variant={sync.variant as any} dot>
+                      <span className="whitespace-nowrap">{sync.label}</span>
+                    </Badge>
+                  </div>
+                  {/* Mobile dot only */}
+                  <div className="sm:hidden w-[36px] h-[36px] rounded-full bg-slate-900 border border-slate-700/80 shadow-sm flex items-center justify-center">
+                    <div className={`w-2.5 h-2.5 rounded-full ${sync.variant === 'success' ? 'bg-emerald-500' : sync.variant === 'warning' ? 'bg-amber-500' : sync.variant === 'error' ? 'bg-red-500' : 'bg-slate-500'}`} />
+                  </div>
                 </div>
               </button>
               
