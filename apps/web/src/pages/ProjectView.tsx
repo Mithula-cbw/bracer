@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProjectStore } from '../store/projectStore';
 import { Badge, Button } from '../components/ui';
@@ -39,6 +39,38 @@ export function ProjectView() {
   const [isDragging, setIsDragging] = useState(false);
   const [dropError, setDropError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [showGlobalSearchDropdown, setShowGlobalSearchDropdown] = useState(false);
+
+  const searchResults = useMemo(() => {
+    if (!globalSearch.trim() || !project) return { schemas: [], entries: [] };
+    const term = globalSearch.toLowerCase();
+    
+    // schemas
+    const matchedSchemas = project.schemas.filter(s => s.name.toLowerCase().includes(term));
+    
+    // entries
+    const matchedEntries: { schema: Schema; entry: any; listFieldName: string; entryIndex: number }[] = [];
+    project.contentLists.forEach(list => {
+      const schema = project.schemas.find(s => s.id === list.schemaId);
+      if (!schema) return;
+      list.entries.forEach((entry, idx) => {
+        const entryString = JSON.stringify(entry).toLowerCase();
+        if (entryString.includes(term)) {
+          matchedEntries.push({ schema, entry, listFieldName: list.listFieldName, entryIndex: idx });
+        }
+      });
+    });
+    
+    return { schemas: matchedSchemas, entries: matchedEntries };
+  }, [globalSearch, project]);
+
+  useEffect(() => {
+    const handleClick = () => setShowGlobalSearchDropdown(false);
+    if (showGlobalSearchDropdown) document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showGlobalSearchDropdown]);
 
   useEffect(() => {
     const handleClick = () => setShowCopyDropdown(false);
@@ -254,6 +286,96 @@ export function ProjectView() {
 
       {/* ── Body ── */}
       <div className="max-w-5xl mx-auto px-4 py-8">
+
+        {/* Global Search */}
+        <div className="relative mb-8 z-30">
+          <div className="relative group">
+            <svg className="w-5 h-5 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input 
+              type="text"
+              placeholder="Search schemas or entries across the project..."
+              className="w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-slate-100 text-sm sm:text-base rounded-2xl pl-12 pr-4 py-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-sm"
+              value={globalSearch}
+              onChange={e => { setGlobalSearch(e.target.value); setShowGlobalSearchDropdown(true); }}
+              onClick={(e) => { e.stopPropagation(); setShowGlobalSearchDropdown(true); }}
+            />
+            {globalSearch && (
+              <button 
+                onClick={() => { setGlobalSearch(''); setShowGlobalSearchDropdown(false); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {showGlobalSearchDropdown && globalSearch.trim() && (
+            <div 
+              className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="max-h-[400px] overflow-y-auto p-2">
+                {searchResults.schemas.length === 0 && searchResults.entries.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-slate-500">No results found for <span className="text-slate-300">"{globalSearch}"</span></div>
+                ) : (
+                  <>
+                    {searchResults.schemas.length > 0 && (
+                      <div className="mb-2 last:mb-0">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 py-2">Schemas</div>
+                        {searchResults.schemas.map(s => (
+                          <button
+                            key={s.id}
+                            onClick={() => { navigate(`/project/${project.id}/content/${s.id}`); setShowGlobalSearchDropdown(false); }}
+                            className="w-full text-left px-3 py-2.5 hover:bg-slate-800 rounded-xl text-sm text-slate-200 flex items-center gap-3 transition-colors"
+                          >
+                            <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0">
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" /></svg>
+                            </span>
+                            <span className="font-medium truncate">{s.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {searchResults.entries.length > 0 && (
+                      <div className="mb-2 last:mb-0">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 py-2">Entries</div>
+                        {searchResults.entries.map((res, idx) => {
+                          let label = res.entry.id ? String(res.entry.id) : `Entry #${res.entryIndex + 1}`;
+                          for (const key of Object.keys(res.entry)) {
+                            if (key !== 'id' && typeof res.entry[key] === 'string' && res.entry[key].length > 0) {
+                              label = res.entry[key];
+                              break;
+                            }
+                          }
+                          return (
+                            <button
+                              key={`${res.schema.id}-${res.listFieldName}-${res.entryIndex}-${idx}`}
+                              onClick={() => { navigate(`/project/${project.id}/content/${res.schema.id}?ctx=${res.listFieldName}&entry=${res.entryIndex}`); setShowGlobalSearchDropdown(false); }}
+                              className="w-full text-left px-3 py-2.5 hover:bg-slate-800 rounded-xl text-sm text-slate-300 flex items-center gap-3 transition-colors group"
+                            >
+                              <span className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c.621 0 1.125.504 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="truncate text-slate-200 group-hover:text-white font-medium">{label}</div>
+                                <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Schema: {res.schema.name}</div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Project meta */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
