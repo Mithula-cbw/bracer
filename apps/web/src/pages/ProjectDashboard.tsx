@@ -196,7 +196,7 @@ export function ProjectDashboard() {
           
           {/* Desktop App Banner */}
           {showBanner && (
-            <div className="mb-8 relative overflow-hidden bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/20 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-sm">
+            <div className="hidden md:flex mb-8 relative overflow-hidden bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/20 rounded-2xl p-6 sm:p-8 flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-sm">
               <button 
                 onClick={dismissBanner}
                 className="absolute top-3 right-3 z-20 text-indigo-300 hover:text-white transition-colors p-1"
