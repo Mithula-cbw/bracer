@@ -42,6 +42,7 @@ export function ProjectView() {
 
   const [globalSearch, setGlobalSearch] = useState('');
   const [showGlobalSearchDropdown, setShowGlobalSearchDropdown] = useState(false);
+  const [showSyncDropdown, setShowSyncDropdown] = useState(false);
 
   const searchResults = useMemo(() => {
     if (!globalSearch.trim() || !project) return { schemas: [], entries: [] };
@@ -71,6 +72,12 @@ export function ProjectView() {
     if (showGlobalSearchDropdown) document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, [showGlobalSearchDropdown]);
+
+  useEffect(() => {
+    const handleClick = () => setShowSyncDropdown(false);
+    if (showSyncDropdown) document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showSyncDropdown]);
 
   useEffect(() => {
     const handleClick = () => setShowCopyDropdown(false);
@@ -271,22 +278,50 @@ export function ProjectView() {
             </h1>
           )}
 
-          <div className="hidden lg:flex items-center gap-2 mr-2">
-            <Badge variant="default">v{project.version}</Badge>
-            <Badge variant={sync.variant} dot>{sync.label}</Badge>
+          <div className="flex items-center gap-2 mr-2">
+            <div className="hidden lg:block">
+              <Badge variant="default">v{project.version}</Badge>
+            </div>
+            
+            <div className="relative flex items-center">
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowSyncDropdown(!showSyncDropdown); }}
+                className="focus:outline-none"
+              >
+                <div className="hover:opacity-80 transition-opacity">
+                  <Badge variant={sync.variant as any} dot>
+                    <span className="whitespace-nowrap max-w-[80px] sm:max-w-none truncate block sm:inline">{sync.label}</span>
+                  </Badge>
+                </div>
+              </button>
+              
+              {showSyncDropdown && (
+                <div 
+                  className="absolute top-full right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 mt-3 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 p-3 flex flex-col gap-3 text-left"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Storage Status</span>
+                    <span className="text-sm text-slate-200 font-medium flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${sync.variant === 'success' ? 'bg-emerald-500' : sync.variant === 'warning' ? 'bg-amber-500' : sync.variant === 'error' ? 'bg-red-500' : 'bg-slate-500'}`} />
+                      <span className="truncate">{sync.label}</span>
+                    </span>
+                  </div>
+                  <button 
+                    disabled
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 text-slate-400 text-xs font-semibold rounded-lg border border-slate-700 cursor-not-allowed transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Sync Now
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2 relative flex-shrink-0">
-            {/* Storage status dot for mobile/tablet where badges are hidden */}
-            <div 
-              className={`lg:hidden w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                sync.variant === 'success' ? 'bg-emerald-500' :
-                sync.variant === 'warning' ? 'bg-amber-500' :
-                sync.variant === 'error' ? 'bg-red-500' :
-                'bg-slate-500'
-              }`} 
-              title={`Status: ${sync.label}`}
-            />
             
             <div className="relative group flex items-center justify-end">
               <svg className={`w-4 h-4 text-slate-500 absolute pointer-events-none group-focus-within:text-indigo-400 transition-all z-10 ${
