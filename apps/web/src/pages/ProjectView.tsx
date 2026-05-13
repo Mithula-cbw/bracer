@@ -277,6 +277,17 @@ export function ProjectView() {
           </div>
 
           <div className="flex items-center gap-2 relative flex-shrink-0">
+            {/* Storage status dot for mobile/tablet where badges are hidden */}
+            <div 
+              className={`lg:hidden w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                sync.variant === 'success' ? 'bg-emerald-500' :
+                sync.variant === 'warning' ? 'bg-amber-500' :
+                sync.variant === 'error' ? 'bg-red-500' :
+                'bg-slate-500'
+              }`} 
+              title={`Status: ${sync.label}`}
+            />
+            
             <div className="relative group flex items-center justify-end">
               <svg className={`w-4 h-4 text-slate-500 absolute pointer-events-none group-focus-within:text-indigo-400 transition-all z-10 ${
                 globalSearch || showGlobalSearchDropdown ? 'left-[10px] sm:left-3' : 'left-[10px] sm:left-3'
@@ -373,7 +384,7 @@ export function ProjectView() {
 
             <button
               onClick={handleNewSchema}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
             >
               <span className="text-base leading-none">+</span>
               <span className="hidden sm:inline">Schema</span>
@@ -733,6 +744,19 @@ export function ProjectView() {
           </button>
         </div>
       )}
+
+      {/* ── Mobile Floating Action Button ── */}
+      <div className="sm:hidden fixed bottom-6 right-6 z-40">
+        <button
+          onClick={handleNewSchema}
+          className="w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-indigo-900/50 transition-transform active:scale-95"
+          title="New Schema"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
