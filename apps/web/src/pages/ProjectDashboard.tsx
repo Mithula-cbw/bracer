@@ -213,7 +213,7 @@ export function ProjectDashboard() {
                 <input 
                   type="text"
                   placeholder="Search projects..."
-                  className={`bg-slate-900 border border-slate-800 hover:border-slate-700 text-sm rounded-full py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-sm cursor-pointer focus:cursor-text h-[36px] ${
+                  className={`bg-slate-900 border border-slate-800 hover:border-slate-700 text-sm rounded-full py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-sm cursor-pointer focus:cursor-text h-[36px] focus:w-[160px] sm:focus:w-[220px] md:focus:w-[260px] focus:pr-8 focus:text-slate-100 focus:placeholder:text-slate-500 ${
                     searchQuery 
                       ? 'w-[160px] sm:w-[220px] md:w-[260px] pl-[34px] pr-8 text-slate-100 placeholder:text-slate-500' 
                       : 'w-[36px] sm:w-[160px] pl-[34px] pr-0 sm:pr-3 text-transparent sm:text-slate-100 placeholder:text-transparent sm:placeholder:text-slate-500'
