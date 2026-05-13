@@ -276,16 +276,23 @@ export function ProjectView() {
             <Badge variant={sync.variant} dot>{sync.label}</Badge>
           </div>
 
-          <div className="flex items-center gap-2 relative">
+          <div className="flex items-center gap-2 relative flex-shrink-0">
             <div className="relative group flex items-center justify-end">
-              <svg className="w-4 h-4 text-slate-500 absolute left-2.5 sm:left-3 pointer-events-none group-focus-within:text-indigo-400 transition-colors z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className={`w-4 h-4 text-slate-500 absolute pointer-events-none group-focus-within:text-indigo-400 transition-all z-10 ${
+                globalSearch || showGlobalSearchDropdown ? 'left-[10px] sm:left-3' : 'left-[10px] sm:left-3'
+              }`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input 
                 type="text"
                 placeholder="Search..."
-                className="w-8 sm:w-[140px] focus:w-[160px] sm:focus:w-[220px] md:focus:w-[300px] bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-slate-100 text-sm rounded-full pl-8 sm:pl-9 pr-3 focus:pl-9 focus:pr-8 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-sm cursor-pointer focus:cursor-text text-transparent focus:text-slate-100 sm:text-slate-100 placeholder:text-transparent focus:placeholder:text-slate-500 sm:placeholder:text-slate-500"
+                className={`bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-sm rounded-full py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-sm cursor-pointer focus:cursor-text h-[36px] ${
+                  globalSearch || showGlobalSearchDropdown 
+                    ? 'w-[160px] sm:w-[220px] md:w-[300px] pl-[34px] pr-8 text-slate-100 placeholder:text-slate-500' 
+                    : 'w-[36px] sm:w-[140px] pl-[34px] pr-0 sm:pr-3 text-transparent sm:text-slate-100 placeholder:text-transparent sm:placeholder:text-slate-500'
+                }`}
                 value={globalSearch}
+                onFocus={() => setShowGlobalSearchDropdown(true)}
                 onChange={e => { setGlobalSearch(e.target.value); setShowGlobalSearchDropdown(true); }}
                 onClick={(e) => { e.stopPropagation(); setShowGlobalSearchDropdown(true); }}
               />
