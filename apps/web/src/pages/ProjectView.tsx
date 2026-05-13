@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProjectStore } from '../store/projectStore';
 import { Badge, Button } from '../components/ui';
 import type { Schema } from '../../../../packages/core/src/types';
 import { buildJSON } from '../../../../packages/core/src/jsonBuilder';
+import { inferSchemaFromJSON } from '../../../../packages/core/src/schemaInference';
 
 export function ProjectView() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -34,6 +35,49 @@ export function ProjectView() {
   const [copySearch, setCopySearch] = useState('');
   const [showCopyDropdown, setShowCopyDropdown] = useState(false);
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [dropError, setDropError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [showGlobalSearchDropdown, setShowGlobalSearchDropdown] = useState(false);
+  const [showSyncDropdown, setShowSyncDropdown] = useState(false);
+
+  const searchResults = useMemo(() => {
+    if (!globalSearch.trim() || !project) return { schemas: [], entries: [] };
+    const term = globalSearch.toLowerCase();
+    
+    // schemas
+    const matchedSchemas = project.schemas.filter(s => s.name.toLowerCase().includes(term));
+    
+    // entries
+    const matchedEntries: { schema: Schema; entry: any; listFieldName: string; entryIndex: number }[] = [];
+    project.contentLists.forEach(list => {
+      const schema = project.schemas.find(s => s.id === list.schemaId);
+      if (!schema) return;
+      list.entries.forEach((entry, idx) => {
+        const entryString = JSON.stringify(entry).toLowerCase();
+        if (entryString.includes(term)) {
+          matchedEntries.push({ schema, entry, listFieldName: list.listFieldName, entryIndex: idx });
+        }
+      });
+    });
+    
+    return { schemas: matchedSchemas, entries: matchedEntries };
+  }, [globalSearch, project]);
+
+  useEffect(() => {
+    const handleClick = () => setShowGlobalSearchDropdown(false);
+    if (showGlobalSearchDropdown) document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showGlobalSearchDropdown]);
+
+  useEffect(() => {
+    const handleClick = () => setShowSyncDropdown(false);
+    if (showSyncDropdown) document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showSyncDropdown]);
 
   useEffect(() => {
     const handleClick = () => setShowCopyDropdown(false);
@@ -143,6 +187,41 @@ export function ProjectView() {
     URL.revokeObjectURL(url);
   };
 
+  const processFileForSchema = (file: File) => {
+    setDropError('');
+    if (!file.name.endsWith('.json') && file.type !== 'application/json') {
+      setDropError('Please upload a .json file.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = (e.target?.result as string) ?? '';
+        const parsed = JSON.parse(text);
+        const obj = Array.isArray(parsed) ? parsed[0] : parsed;
+        const inferred = inferSchemaFromJSON(obj, Array.isArray(parsed) ? parsed : [parsed]);
+        navigate(`/project/${projectId}/schema/new`, { state: { inferredSchema: inferred } });
+      } catch (err) {
+        setDropError('Invalid JSON format.');
+      }
+    };
+    reader.onerror = () => setDropError('Failed to read file.');
+    reader.readAsText(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) processFileForSchema(file);
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFileForSchema(file);
+    e.target.value = '';
+  };
+
   return (
     <div
       className="min-h-screen bg-slate-950 text-slate-100 font-sans"
@@ -199,21 +278,167 @@ export function ProjectView() {
             </h1>
           )}
 
-          <Badge variant="default">v{project.version}</Badge>
-          <Badge variant={sync.variant} dot>{sync.label}</Badge>
+          <div className="flex items-center gap-2 mr-2">
+            <div className="hidden lg:block">
+              <Badge variant="default">v{project.version}</Badge>
+            </div>
+            
+            <div className="relative flex items-center">
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowSyncDropdown(!showSyncDropdown); }}
+                className="focus:outline-none"
+              >
+                <div className="hover:opacity-80 transition-opacity">
+                  {/* Desktop full badge */}
+                  <div className="hidden sm:block">
+                    <Badge variant={sync.variant as any} dot>
+                      <span className="whitespace-nowrap">{sync.label}</span>
+                    </Badge>
+                  </div>
+                  {/* Mobile dot only */}
+                  <div className="sm:hidden w-[36px] h-[36px] rounded-full bg-slate-900 border border-slate-700/80 shadow-sm flex items-center justify-center">
+                    <div className={`w-2.5 h-2.5 rounded-full ${sync.variant === 'success' ? 'bg-emerald-500' : sync.variant === 'warning' ? 'bg-amber-500' : sync.variant === 'error' ? 'bg-red-500' : 'bg-slate-500'}`} />
+                  </div>
+                </div>
+              </button>
+              
+              {showSyncDropdown && (
+                <div 
+                  className="absolute top-full right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 mt-3 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 p-3 flex flex-col gap-3 text-left"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Storage Status</span>
+                    <span className="text-sm text-slate-200 font-medium flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${sync.variant === 'success' ? 'bg-emerald-500' : sync.variant === 'warning' ? 'bg-amber-500' : sync.variant === 'error' ? 'bg-red-500' : 'bg-slate-500'}`} />
+                      <span className="truncate">{sync.label}</span>
+                    </span>
+                  </div>
+                  <button 
+                    disabled
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 text-slate-400 text-xs font-semibold rounded-lg border border-slate-700 cursor-not-allowed transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Sync Now
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
 
-          <button
-            onClick={handleNewSchema}
-            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            <span className="text-base leading-none">+</span>
-            <span className="hidden sm:inline">New Schema</span>
-          </button>
+          <div className="flex items-center gap-2 relative flex-shrink-0">
+            
+            <div className="relative group flex items-center justify-end">
+              <svg className={`w-4 h-4 text-slate-500 absolute pointer-events-none group-focus-within:text-indigo-400 transition-all z-10 ${
+                globalSearch || showGlobalSearchDropdown ? 'left-[10px] sm:left-3' : 'left-[10px] sm:left-3'
+              }`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input 
+                type="text"
+                placeholder="Search..."
+                className={`bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-sm rounded-full py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-sm cursor-pointer focus:cursor-text h-[36px] ${
+                  globalSearch || showGlobalSearchDropdown 
+                    ? 'w-[160px] sm:w-[220px] md:w-[300px] pl-[34px] pr-8 text-slate-100 placeholder:text-slate-500' 
+                    : 'w-[36px] sm:w-[140px] pl-[34px] pr-0 sm:pr-3 text-transparent sm:text-slate-100 placeholder:text-transparent sm:placeholder:text-slate-500'
+                }`}
+                value={globalSearch}
+                onFocus={() => setShowGlobalSearchDropdown(true)}
+                onChange={e => { setGlobalSearch(e.target.value); setShowGlobalSearchDropdown(true); }}
+                onClick={(e) => { e.stopPropagation(); setShowGlobalSearchDropdown(true); }}
+              />
+              {globalSearch && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setGlobalSearch(''); setShowGlobalSearchDropdown(false); }}
+                  className="absolute right-2.5 text-slate-500 hover:text-slate-300 bg-slate-900 z-10"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+
+              {showGlobalSearchDropdown && globalSearch.trim() && (
+                <div 
+                  className="absolute top-full right-0 mt-3 w-[280px] sm:w-[380px] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 z-50 text-left"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="max-h-[400px] overflow-y-auto p-2">
+                    {searchResults.schemas.length === 0 && searchResults.entries.length === 0 ? (
+                      <div className="py-8 text-center text-sm text-slate-500">No results found for <span className="text-slate-300">"{globalSearch}"</span></div>
+                    ) : (
+                      <>
+                        {searchResults.schemas.length > 0 && (
+                          <div className="mb-2 last:mb-0">
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 py-2">Schemas</div>
+                            {searchResults.schemas.map(s => (
+                              <button
+                                key={s.id}
+                                onClick={() => { navigate(`/project/${project.id}/content/${s.id}`); setShowGlobalSearchDropdown(false); }}
+                                className="w-full text-left px-3 py-2.5 hover:bg-slate-800 rounded-xl text-sm text-slate-200 flex items-center gap-3 transition-colors"
+                              >
+                                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" /></svg>
+                                </span>
+                                <span className="font-medium truncate">{s.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {searchResults.entries.length > 0 && (
+                          <div className="mb-2 last:mb-0">
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 py-2">Entries</div>
+                            {searchResults.entries.map((res, idx) => {
+                              let label = res.entry.id ? String(res.entry.id) : `Entry #${res.entryIndex + 1}`;
+                              for (const key of Object.keys(res.entry)) {
+                                if (key !== 'id' && typeof res.entry[key] === 'string' && res.entry[key].length > 0) {
+                                  label = res.entry[key];
+                                  break;
+                                }
+                              }
+                              return (
+                                <button
+                                  key={`${res.schema.id}-${res.listFieldName}-${res.entryIndex}-${idx}`}
+                                  onClick={() => { navigate(`/project/${project.id}/content/${res.schema.id}?ctx=${res.listFieldName}&entry=${res.entryIndex}`); setShowGlobalSearchDropdown(false); }}
+                                  className="w-full text-left px-3 py-2.5 hover:bg-slate-800 rounded-xl text-sm text-slate-300 flex items-center gap-3 transition-colors group"
+                                >
+                                  <span className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c.621 0 1.125.504 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="truncate text-slate-200 group-hover:text-white font-medium">{label}</div>
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Schema: {res.schema.name}</div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleNewSchema}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
+            >
+              <span className="text-base leading-none">+</span>
+              <span className="hidden sm:inline">Schema</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* ── Body ── */}
       <div className="max-w-5xl mx-auto px-4 py-8">
+
+
 
         {/* Project meta */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
@@ -355,20 +580,61 @@ export function ProjectView() {
         </div>
 
         {project.schemas.length === 0 ? (
-          <div className="mt-12 flex flex-col items-center justify-center text-center max-w-sm mx-auto">
-            <div className="w-20 h-20 rounded-full bg-slate-800/60 flex items-center justify-center mb-4">
-              <svg className="w-10 h-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+          <div 
+            className={`mt-12 flex flex-col items-center justify-center text-center max-w-2xl mx-auto p-12 rounded-3xl border-2 border-dashed transition-all duration-200 ${
+              isDragging
+                ? 'border-indigo-500 bg-indigo-950/20 scale-[1.02] shadow-2xl shadow-indigo-900/20'
+                : 'border-slate-800 bg-slate-900/20 hover:border-slate-700 hover:bg-slate-900/40'
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+          >
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
+              isDragging ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800/60 text-slate-500'
+            }`}>
+              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.338-2.32 5.75 5.75 0 011.533 7.17A4.5 4.5 0 0117.25 19.5H6.75z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-slate-100 mb-1">No schemas yet</h3>
-            <p className="text-slate-500 text-sm mb-5">Define a schema to start structuring your content.</p>
-            <button
-              onClick={handleNewSchema}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              Create first schema
-            </button>
+            <h3 className={`text-2xl font-semibold mb-3 transition-colors duration-200 ${isDragging ? 'text-indigo-300' : 'text-slate-100'}`}>
+              {isDragging ? 'Drop JSON to auto-detect' : 'Create your first schema'}
+            </h3>
+            <p className="text-slate-400 text-base mb-8 max-w-md">
+              Define a schema manually to start structuring your content, or <strong className="text-slate-300 font-medium">drag and drop an example JSON file</strong> here to instantly auto-detect its fields.
+            </p>
+            
+            {dropError && (
+              <div className="mb-6 px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl flex items-center gap-2 animate-in fade-in zoom-in-95">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {dropError}
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-4 w-full">
+              <button
+                onClick={handleNewSchema}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-900/50 hover:shadow-indigo-800/60 hover:-translate-y-0.5 active:translate-y-0"
+              >
+                Create Manually
+              </button>
+              <div className="text-slate-600 text-sm font-medium px-2">or</div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl transition-all border border-slate-700 hover:border-slate-600"
+              >
+                Browse File
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json"
+                onChange={handleFileInput}
+                className="sr-only"
+              />
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -520,6 +786,19 @@ export function ProjectView() {
           </button>
         </div>
       )}
+
+      {/* ── Mobile Floating Action Button ── */}
+      <div className="sm:hidden fixed bottom-6 right-6 z-40">
+        <button
+          onClick={handleNewSchema}
+          className="w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-indigo-900/50 transition-transform active:scale-95"
+          title="New Schema"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
