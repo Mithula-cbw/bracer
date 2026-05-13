@@ -106,10 +106,10 @@ export function ProjectDashboard() {
         <div className="flex items-center gap-3 ml-auto md:ml-0 md:flex-col md:flex-1 w-full">
           <button
             onClick={() => setShowNewModal(true)}
-            className="flex items-center justify-center gap-2 w-auto md:w-full px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md cursor-pointer text-sm font-medium transition-colors"
+            className="hidden md:flex items-center justify-center gap-2 w-full px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md cursor-pointer text-sm font-medium transition-colors"
           >
             <span className="text-lg leading-none">+</span>
-            <span className="hidden sm:inline md:inline">New Project</span>
+            <span>New Project</span>
           </button>
 
           <div className="md:mt-auto w-full flex flex-col gap-4">
@@ -449,6 +449,19 @@ export function ProjectDashboard() {
           </button>
         </div>
       )}
+
+      {/* ── Mobile Floating Action Button ── */}
+      <div className="md:hidden fixed bottom-6 right-6 z-40">
+        <button
+          onClick={() => setShowNewModal(true)}
+          className="w-14 h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-indigo-900/50 transition-transform active:scale-95"
+          title="New Project"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
