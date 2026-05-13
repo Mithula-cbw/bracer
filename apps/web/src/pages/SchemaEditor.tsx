@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
   useSensor, useSensors, type DragEndEvent,
@@ -502,6 +502,7 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
 export function SchemaEditor() {
   const { id: projectId, schemaId } = useParams<{ id: string; schemaId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const project = useProjectStore((s) => s.projects.find((p) => p.id === projectId));
   const addSchema = useProjectStore((s) => s.addSchema);
@@ -510,9 +511,14 @@ export function SchemaEditor() {
   const isNew = schemaId === 'new';
   const existing = project?.schemas.find((s) => s.id === schemaId);
 
-  const [schemaName, setSchemaName] = useState(existing?.name ?? '');
-  const [rootFields, setRootFields] = useState<SchemaField[]>(existing?.rootFields ?? []);
-  const [listFields, setListFields] = useState<SchemaField[]>(existing?.listFields ?? []);
+  const locationState = location.state as { inferredSchema?: Schema } | undefined;
+  const initialSchemaName = existing?.name ?? (locationState?.inferredSchema?.name ? `${locationState.inferredSchema.name} - ${new Date().toISOString().split('T')[0]}` : '');
+  const initialRootFields = existing?.rootFields ?? locationState?.inferredSchema?.rootFields ?? [];
+  const initialListFields = existing?.listFields ?? locationState?.inferredSchema?.listFields ?? [];
+
+  const [schemaName, setSchemaName] = useState(initialSchemaName);
+  const [rootFields, setRootFields] = useState<SchemaField[]>(initialRootFields);
+  const [listFields, setListFields] = useState<SchemaField[]>(initialListFields);
   const [saveError, setSaveError] = useState('');
 
   const isValid = schemaName.trim().length > 0 && (rootFields.length + listFields.length) > 0;

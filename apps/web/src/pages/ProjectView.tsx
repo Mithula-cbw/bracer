@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProjectStore } from '../store/projectStore';
 import { Badge, Button } from '../components/ui';
 import type { Schema } from '../../../../packages/core/src/types';
 import { buildJSON } from '../../../../packages/core/src/jsonBuilder';
+import { inferSchemaFromJSON } from '../../../../packages/core/src/schemaInference';
 
 export function ProjectView() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -34,6 +35,10 @@ export function ProjectView() {
   const [copySearch, setCopySearch] = useState('');
   const [showCopyDropdown, setShowCopyDropdown] = useState(false);
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [dropError, setDropError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleClick = () => setShowCopyDropdown(false);
@@ -141,6 +146,41 @@ export function ProjectView() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const processFileForSchema = (file: File) => {
+    setDropError('');
+    if (!file.name.endsWith('.json') && file.type !== 'application/json') {
+      setDropError('Please upload a .json file.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = (e.target?.result as string) ?? '';
+        const parsed = JSON.parse(text);
+        const obj = Array.isArray(parsed) ? parsed[0] : parsed;
+        const inferred = inferSchemaFromJSON(obj, Array.isArray(parsed) ? parsed : [parsed]);
+        navigate(`/project/${projectId}/schema/new`, { state: { inferredSchema: inferred } });
+      } catch (err) {
+        setDropError('Invalid JSON format.');
+      }
+    };
+    reader.onerror = () => setDropError('Failed to read file.');
+    reader.readAsText(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) processFileForSchema(file);
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFileForSchema(file);
+    e.target.value = '';
   };
 
   return (
@@ -355,20 +395,61 @@ export function ProjectView() {
         </div>
 
         {project.schemas.length === 0 ? (
-          <div className="mt-12 flex flex-col items-center justify-center text-center max-w-sm mx-auto">
-            <div className="w-20 h-20 rounded-full bg-slate-800/60 flex items-center justify-center mb-4">
-              <svg className="w-10 h-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+          <div 
+            className={`mt-12 flex flex-col items-center justify-center text-center max-w-2xl mx-auto p-12 rounded-3xl border-2 border-dashed transition-all duration-200 ${
+              isDragging
+                ? 'border-indigo-500 bg-indigo-950/20 scale-[1.02] shadow-2xl shadow-indigo-900/20'
+                : 'border-slate-800 bg-slate-900/20 hover:border-slate-700 hover:bg-slate-900/40'
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+          >
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
+              isDragging ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800/60 text-slate-500'
+            }`}>
+              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.338-2.32 5.75 5.75 0 011.533 7.17A4.5 4.5 0 0117.25 19.5H6.75z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-slate-100 mb-1">No schemas yet</h3>
-            <p className="text-slate-500 text-sm mb-5">Define a schema to start structuring your content.</p>
-            <button
-              onClick={handleNewSchema}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              Create first schema
-            </button>
+            <h3 className={`text-2xl font-semibold mb-3 transition-colors duration-200 ${isDragging ? 'text-indigo-300' : 'text-slate-100'}`}>
+              {isDragging ? 'Drop JSON to auto-detect' : 'Create your first schema'}
+            </h3>
+            <p className="text-slate-400 text-base mb-8 max-w-md">
+              Define a schema manually to start structuring your content, or <strong className="text-slate-300 font-medium">drag and drop an example JSON file</strong> here to instantly auto-detect its fields.
+            </p>
+            
+            {dropError && (
+              <div className="mb-6 px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl flex items-center gap-2 animate-in fade-in zoom-in-95">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {dropError}
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-4 w-full">
+              <button
+                onClick={handleNewSchema}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-900/50 hover:shadow-indigo-800/60 hover:-translate-y-0.5 active:translate-y-0"
+              >
+                Create Manually
+              </button>
+              <div className="text-slate-600 text-sm font-medium px-2">or</div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl transition-all border border-slate-700 hover:border-slate-600"
+              >
+                Browse File
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json"
+                onChange={handleFileInput}
+                className="sr-only"
+              />
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
