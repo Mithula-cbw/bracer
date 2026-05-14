@@ -232,6 +232,7 @@ export function ProjectView() {
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => navigate('/')}
+            title="Back to projects"
             className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-100 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -286,6 +287,7 @@ export function ProjectView() {
             <div className="relative flex items-center">
               <button 
                 onClick={(e) => { e.stopPropagation(); setShowSyncDropdown(!showSyncDropdown); }}
+                title="Sync status"
                 className="focus:outline-none"
               >
                 <div className="hover:opacity-80 transition-opacity">
@@ -352,6 +354,7 @@ export function ProjectView() {
               {globalSearch && (
                 <button 
                   onClick={(e) => { e.stopPropagation(); setGlobalSearch(''); setShowGlobalSearchDropdown(false); }}
+                  title="Clear search"
                   className="absolute right-2.5 text-slate-500 hover:text-slate-300 bg-slate-900 z-10"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -557,6 +560,7 @@ export function ProjectView() {
                 </button>
                 <button 
                   onClick={() => { setCopyFromSource(''); setCopyNewSchemaName(''); }} 
+                  title="Cancel copy"
                   className="text-slate-500 hover:text-slate-300 px-1"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -660,6 +664,7 @@ export function ProjectView() {
                       </svg>
                     </div>
                     <button
+                      title="Schema options"
                       className="p-1.5 rounded-md hover:bg-slate-800 text-slate-600 hover:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => { e.stopPropagation(); handleContextMenu(e, schema.id); }}
                     >
