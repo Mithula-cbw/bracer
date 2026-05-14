@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
@@ -16,18 +16,18 @@ import type { Schema, SchemaField, FieldType } from '../../../../packages/core/s
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
-const FIELD_TYPES: { value: FieldType; icon: string; label: string }[] = [
-  { value: 'short-text',      icon: 'Aa', label: 'Short Text' },
-  { value: 'long-text',       icon: '¶',  label: 'Long Text' },
-  { value: 'number',          icon: '#',  label: 'Number' },
-  { value: 'number-nullable', icon: '#?', label: 'Number (nullable)' },
-  { value: 'float',           icon: '.#', label: 'Float' },
-  { value: 'float-nullable',  icon: '.#?',label: 'Float (nullable)' },
-  { value: 'toggle',          icon: '◐',  label: 'Toggle' },
-  { value: 'dropdown',        icon: '▾',  label: 'Dropdown' },
-  { value: 'tags',            icon: '⊞',  label: 'Tags' },
-  { value: 'object-optional', icon: '{}', label: 'Object (optional)' },
-  { value: 'list',            icon: '[]', label: 'List' },
+const FIELD_TYPES: { value: FieldType; icon: string; label: string; description: string }[] = [
+  { value: 'short-text',      icon: 'Aa', label: 'Short Text',        description: 'A single line of plain text.' },
+  { value: 'long-text',       icon: '¶',  label: 'Long Text',         description: 'Multi-line text, good for paragraphs.' },
+  { value: 'number',          icon: '#',  label: 'Number',            description: 'An integer number.' },
+  { value: 'number-nullable', icon: '#?', label: 'Number (nullable)', description: 'An integer number that can be left empty.' },
+  { value: 'float',           icon: '.#', label: 'Float',             description: 'A decimal number.' },
+  { value: 'float-nullable',  icon: '.#?',label: 'Float (nullable)',  description: 'A decimal number that can be left empty.' },
+  { value: 'toggle',          icon: '◐',  label: 'Toggle',            description: 'A true/false boolean switch.' },
+  { value: 'dropdown',        icon: '▾',  label: 'Dropdown',          description: 'Select from a predefined list of options.' },
+  { value: 'tags',            icon: '⊞',  label: 'Tags',              description: 'A list of distinct string tags.' },
+  { value: 'object-optional', icon: '{}', label: 'Object (optional)', description: 'A nested group of fields that can be toggled on/off.' },
+  { value: 'list',            icon: '[]', label: 'List',              description: 'An array of repeating sub-fields.' },
 ];
 
 const TYPE_ICON: Record<FieldType, string> = Object.fromEntries(
@@ -134,6 +134,57 @@ function SubFieldList({ fields, depth, onChange }: { fields: SchemaField[]; dept
   );
 }
 
+// ─── FieldTypeDropdown ────────────────────────────────────────────────────────
+
+function FieldTypeDropdown({ value, onChange }: { value: FieldType; onChange: (v: FieldType) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const selected = FIELD_TYPES.find(t => t.value === value) || FIELD_TYPES[0];
+
+  return (
+    <div ref={ref} className="relative flex-shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
+          open ? 'bg-slate-800 text-slate-100 shadow-inner' : 'text-slate-300 hover:text-slate-100 hover:bg-slate-800/80'
+        }`}
+      >
+        <span className="font-medium">{selected.label}</span>
+        <svg className={`w-3.5 h-3.5 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute top-full right-0 mt-1.5 w-[200px] bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100 py-1">
+          {FIELD_TYPES.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              title={t.description}
+              onClick={() => { onChange(t.value); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2.5 transition-colors ${
+                t.value === value ? 'bg-indigo-500/10 text-indigo-300 font-medium' : 'text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+              }`}
+            >
+              <span className={`w-5 text-center font-mono text-[10px] ${t.value === value ? 'text-indigo-400' : 'text-slate-500'}`}>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── FieldRow ─────────────────────────────────────────────────────────────────
 
 function FieldRow({ field, depth = 0, onChange, onDelete }: {
@@ -179,20 +230,10 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
         />
 
         {/* Type select */}
-        <div className="relative flex-shrink-0">
-          <select
-            value={field.type}
-            onChange={(e) => onChange({ ...field, type: e.target.value as FieldType, options: [], subFields: [] })}
-            className="appearance-none pl-2 sm:pl-3 pr-6 sm:pr-8 py-1.5 text-xs rounded-lg bg-slate-950/50 border border-slate-800/80 text-slate-300 outline-none focus:border-indigo-500 cursor-pointer transition-all hover:border-slate-600 font-medium shadow-inner"
-          >
-            {FIELD_TYPES.map((t) => (
-              <option key={t.value} value={t.value} className="bg-slate-900 text-slate-300">{t.icon} {t.label}</option>
-            ))}
-          </select>
-          <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
+        <FieldTypeDropdown 
+          value={field.type} 
+          onChange={(type) => onChange({ ...field, type, options: [], subFields: [] })} 
+        />
 
         {/* Required */}
         <button type="button" onClick={() => onChange({ ...field, required: !field.required })}
