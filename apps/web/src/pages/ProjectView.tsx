@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProjectStore } from '../store/projectStore';
 import { Badge, Button } from '../components/ui';
+import { useGoogleAuth } from '../hooks/useGoogleAuth';
+import { useDriveSync } from '../hooks/useDriveSync';
 import type { Schema } from '../../../../packages/core/src/types';
 import { buildJSON } from '../../../../packages/core/src/jsonBuilder';
 import { inferSchemaFromJSON } from '../../../../packages/core/src/schemaInference';
@@ -43,6 +45,10 @@ export function ProjectView() {
   const [globalSearch, setGlobalSearch] = useState('');
   const [showGlobalSearchDropdown, setShowGlobalSearchDropdown] = useState(false);
   const [showSyncDropdown, setShowSyncDropdown] = useState(false);
+
+  // Real Drive sync
+  const auth      = useGoogleAuth();
+  const driveSync = useDriveSync();
 
   const searchResults = useMemo(() => {
     if (!globalSearch.trim() || !project) return { schemas: [], entries: [] };
@@ -306,7 +312,7 @@ export function ProjectView() {
               
               {showSyncDropdown && (
                 <div 
-                  className="absolute top-full right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 mt-3 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 p-3 flex flex-col gap-3 text-left"
+                  className="absolute top-full right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 mt-3 w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 p-3 flex flex-col gap-3 text-left"
                   onClick={e => e.stopPropagation()}
                 >
                   <div className="flex flex-col gap-1">
@@ -316,15 +322,25 @@ export function ProjectView() {
                       <span className="truncate">{sync.label}</span>
                     </span>
                   </div>
-                  <button 
-                    disabled
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 text-slate-400 text-xs font-semibold rounded-lg border border-slate-700 cursor-not-allowed transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Sync Now
-                  </button>
+
+                  {!auth.isAuthed ? (
+                    <p className="text-xs text-slate-500">Connect Google Drive in the dashboard to enable sync.</p>
+                  ) : (
+                    <button 
+                      onClick={async () => { await driveSync.syncProject(project); }}
+                      disabled={driveSync.isSyncing || project.syncStatus === 'syncing'}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      <svg className={`w-3.5 h-3.5 ${driveSync.isSyncing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      {driveSync.isSyncing ? 'Syncing…' : 'Sync to Drive'}
+                    </button>
+                  )}
+
+                  {driveSync.lastError && (
+                    <p className="text-xs text-red-400 break-words">{driveSync.lastError}</p>
+                  )}
                 </div>
               )}
             </div>

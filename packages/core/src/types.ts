@@ -46,7 +46,8 @@ export interface Project {
   schemas: Schema[];
   contentLists: ContentList[];
   syncStatus: 'synced' | 'syncing' | 'conflict' | 'local' | 'error';
-  driveFolder?: string;
+  driveFolder?: string;     // Drive folder ID for this project
+  syncBackend?: 'drive';    // set when the project has been pushed to Drive
 }
 
 export interface AppState {
