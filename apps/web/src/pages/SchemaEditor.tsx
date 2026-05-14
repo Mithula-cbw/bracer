@@ -74,6 +74,7 @@ function ChipEditor({ options, onChange }: { options: string[]; onChange: (o: st
             <span key={opt} className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium shadow-sm transition-all hover:brightness-110 ${color}`}>
               {opt}
               <button type="button" onClick={() => onChange(options.filter((o) => o !== opt))}
+                title={`Remove ${opt}`}
                 className="w-4 h-4 rounded-md flex items-center justify-center opacity-70 hover:opacity-100 hover:text-red-400 hover:bg-red-400/20 transition-all leading-none focus:outline-none">
                 <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -92,6 +93,7 @@ function ChipEditor({ options, onChange }: { options: string[]; onChange: (o: st
           className="flex-1 max-w-[200px] px-3 py-1.5 text-xs rounded-md bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 outline-none focus:border-indigo-500 transition-colors shadow-inner"
         />
         <button type="button" onClick={add} disabled={!draft.trim()}
+          title="Add option"
           className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-800 border border-slate-700 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white disabled:opacity-50 disabled:hover:bg-slate-800 disabled:hover:border-slate-700 disabled:text-slate-500 text-slate-300 transition-all shadow-sm">
           Add
         </button>
@@ -127,6 +129,7 @@ function SubFieldList({ fields, depth, onChange }: { fields: SchemaField[]; dept
         <div className="text-xs text-slate-600 py-1 italic">No sub-fields yet</div>
       )}
       <button type="button" onClick={() => onChange([...fields, blankField()])}
+        title="Add new sub-field"
         className="mt-1 text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors self-start font-medium">
         <span className="text-sm">+</span> Add sub-field
       </button>
@@ -152,6 +155,7 @@ function FieldTypeDropdown({ value, onChange }: { value: FieldType; onChange: (v
     <div ref={ref} className="relative flex-shrink-0">
       <button
         type="button"
+        title="Change field type"
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
           open ? 'bg-slate-800 text-slate-100 shadow-inner' : 'text-slate-300 hover:text-slate-100 hover:bg-slate-800/80'
@@ -208,6 +212,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
 
         {/* Drag handle */}
         <button type="button" {...attributes} {...listeners}
+          title="Drag to reorder"
           className="text-slate-600 hover:text-slate-300 hover:bg-slate-800 p-1 sm:p-1.5 rounded-md cursor-grab active:cursor-grabbing flex-shrink-0 touch-none transition-colors">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
             <circle cx="5" cy="4" r="1.2"/><circle cx="11" cy="4" r="1.2"/>
@@ -217,7 +222,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
         </button>
 
         {/* Type icon badge */}
-        <span className="hidden sm:flex flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 items-center justify-center text-[11px] font-mono font-bold text-indigo-400 select-none shadow-sm">
+        <span title="Field Type" className="hidden sm:flex flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 items-center justify-center text-[11px] font-mono font-bold text-indigo-400 select-none shadow-sm">
           {TYPE_ICON[field.type]}
         </span>
 
@@ -225,6 +230,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
         <input
           value={field.name}
           onChange={(e) => onChange({ ...field, name: e.target.value, label: e.target.value })}
+          title="Field Name (JSON key)"
           placeholder="field_name"
           className="flex-1 w-full sm:w-auto min-w-[120px] px-2 sm:px-3 py-1.5 text-sm rounded-lg bg-slate-950/50 border border-slate-800/80 text-slate-100 placeholder:text-slate-600 outline-none focus:border-indigo-500 focus:bg-slate-950 font-mono transition-all shadow-inner"
         />
@@ -249,6 +255,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
         {/* Expand sub-fields */}
         {hasSubFields && (
           <button type="button" onClick={() => setSubOpen((o) => !o)}
+            title={subOpen ? 'Collapse sub-fields' : 'Expand sub-fields'}
             className={`flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-md flex items-center justify-center transition-colors ${subOpen ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'}`}>
             <svg className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 ${subOpen ? 'rotate-90' : ''}`}
               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -259,6 +266,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
 
         {/* Delete */}
         <button type="button" onClick={onDelete}
+          title="Delete field"
           className="flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-md flex items-center justify-center text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors sm:opacity-0 group-hover:opacity-100">
           <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -309,6 +317,7 @@ function FieldList({ fields, onChange, label, addLabel, hint }: {
 
       {fields.length === 0 ? (
         <button type="button" onClick={() => onChange([blankField()])}
+          title={addLabel}
           className="w-full border-2 border-dashed border-slate-800/80 hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-xl py-10 flex flex-col items-center gap-3 text-slate-500 hover:text-indigo-400 transition-all group cursor-pointer">
           <div className="w-10 h-10 rounded-full bg-slate-900 group-hover:bg-indigo-500/10 flex items-center justify-center transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -329,6 +338,7 @@ function FieldList({ fields, onChange, label, addLabel, hint }: {
             </SortableContext>
           </DndContext>
           <button type="button" onClick={() => onChange([...fields, blankField()])}
+            title={addLabel}
             className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-indigo-400 hover:text-white bg-indigo-500/10 hover:bg-indigo-600 transition-colors">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -409,6 +419,7 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">
       <button type="button" onClick={() => setOpen((o) => !o)}
+        title={open ? "Hide import panel" : "Show import panel"}
         className="w-full flex items-center justify-between px-4 py-3.5 text-sm font-medium text-slate-300 hover:text-slate-100 hover:bg-slate-800/30 transition-all">
         <span className="flex items-center gap-2.5">
           <span className="w-6 h-6 rounded-md bg-indigo-900/60 border border-indigo-800/60 flex items-center justify-center">
@@ -436,6 +447,7 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
             <>
               {/* Drop zone */}
               <div
+                title="Click to browse or drag and drop a JSON file"
                 onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
                 onDrop={handleDrop}
@@ -508,11 +520,13 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
 
           <div className="flex items-center gap-3">
             <button type="button" onClick={handleDetect} disabled={!json.trim()}
+              title="Detect schema fields from JSON"
               className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors shadow-sm shadow-indigo-900/50">
               Detect Fields
             </button>
             {json.trim() && (
               <button type="button" onClick={handleClearClick}
+                title="Clear JSON and reset detection"
                 className="px-3 py-1.5 text-sm text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors font-medium border border-transparent hover:border-red-500/20">
                 Clear
               </button>
@@ -527,8 +541,8 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
         title="Clear Detected Fields"
         actions={
           <>
-            <button onClick={() => setClearModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
-            <button onClick={confirmClear} className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Clear Fields</button>
+            <button onClick={() => setClearModalOpen(false)} title="Cancel" className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
+            <button onClick={confirmClear} title="Clear fields" className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Clear Fields</button>
           </>
         }
       >
@@ -652,6 +666,7 @@ export function SchemaEditor() {
       <div className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 h-14 sm:h-16 flex items-center gap-3">
           <button type="button" onClick={handleBack}
+            title="Back to project"
             className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-100 hover:border-slate-600 transition-all flex-shrink-0 group shadow-sm">
             <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -725,6 +740,7 @@ export function SchemaEditor() {
         <button
           type="button"
           onClick={handleSave}
+          title="Save schema changes"
           className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-3 sm:py-2.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-lg shadow-indigo-900/50 hover:shadow-indigo-800/60 hover:-translate-y-0.5 active:translate-y-0"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -741,8 +757,8 @@ export function SchemaEditor() {
         title="Replace Fields?"
         actions={
           <>
-            <button onClick={() => setPendingInferredSchema(null)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
-            <button onClick={confirmReplace} className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Replace</button>
+            <button onClick={() => setPendingInferredSchema(null)} title="Cancel" className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
+            <button onClick={confirmReplace} title="Replace fields" className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Replace</button>
           </>
         }
       >
@@ -755,8 +771,8 @@ export function SchemaEditor() {
         title="Discard Changes?"
         actions={
           <>
-            <button onClick={() => setBackModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
-            <button onClick={confirmBack} className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Discard</button>
+            <button onClick={() => setBackModalOpen(false)} title="Cancel" className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
+            <button onClick={confirmBack} title="Discard changes" className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Discard</button>
           </>
         }
       >
