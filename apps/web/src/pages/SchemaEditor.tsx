@@ -608,7 +608,7 @@ export function SchemaEditor() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24">
       {/* Top bar */}
-      <div className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 shadow-sm">
+      <div className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 h-14 sm:h-16 flex items-center gap-3">
           <button type="button" onClick={handleBack}
             className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-100 hover:border-slate-600 transition-all flex-shrink-0 group shadow-sm">
@@ -658,7 +658,7 @@ export function SchemaEditor() {
           }}
         />
 
-        <div className="bg-slate-900/40 sm:rounded-2xl border-y sm:border border-slate-800/80 p-4 sm:p-6 hover:border-slate-700/80 transition-colors sm:shadow-sm -mx-4 sm:mx-0">
+        <div className="bg-slate-900/40 sm:rounded-xl border-y sm:border border-slate-800/80 p-4 sm:p-6 hover:border-slate-700/80 transition-colors sm:shadow-sm -mx-4 sm:mx-0">
           <FieldList
             label="Root Fields"
             addLabel="Add root field"
@@ -668,7 +668,7 @@ export function SchemaEditor() {
           />
         </div>
 
-        <div className="bg-slate-900/40 sm:rounded-2xl border-y sm:border border-slate-800/80 p-4 sm:p-6 hover:border-slate-700/80 transition-colors sm:shadow-sm -mx-4 sm:mx-0">
+        <div className="bg-slate-900/40 sm:rounded-xl border-y sm:border border-slate-800/80 p-4 sm:p-6 hover:border-slate-700/80 transition-colors sm:shadow-sm -mx-4 sm:mx-0">
           <FieldList
             label="List Fields"
             addLabel="Add list field"

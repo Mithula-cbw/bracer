@@ -106,7 +106,7 @@ function ImportPanel({ onImport, onClose }: {
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">↑ Import JSON</h3>
         <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-300 text-sm transition-colors">Hide</button>
@@ -271,7 +271,7 @@ export function ContentEditor() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 sm:pb-10">
       {/* ── Topbar ── */}
-      <div className="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80">
+      <div className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={() => navigate(`/project/${projectId}`)}
             className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-100 transition-colors group flex-shrink-0">
@@ -319,7 +319,7 @@ export function ContentEditor() {
         </div>
 
         {/* ── Top form panel ── */}
-        <div className="bg-slate-900 border border-t-indigo-500/60 border-slate-800 rounded-2xl p-5 shadow-lg">
+        <div className="bg-slate-900 border border-t-indigo-500/60 border-slate-800 rounded-xl p-5 shadow-lg">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 mb-3">
             {isMeta ? 'Pack Metadata' : editIndex !== null ? `Edit Entry #${editIndex + 1}` : 'Add Entry'}
           </p>
@@ -395,7 +395,7 @@ export function ContentEditor() {
 
             {/* Table */}
             {allEntries.length > 0 ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                 {previewFields.length > 0 && (
                   <div className="grid border-b border-slate-800/80"
                     style={{ gridTemplateColumns: `48px repeat(${previewFields.length}, 1fr) 48px` }}>

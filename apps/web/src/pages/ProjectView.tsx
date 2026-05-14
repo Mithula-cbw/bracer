@@ -228,7 +228,7 @@ export function ProjectView() {
       onClick={() => setContextSchema(null)}
     >
       {/* ── Top bar ── */}
-      <div className="sticky top-0 z-20 bg-slate-950/80 backdrop-blur border-b border-slate-800">
+      <div className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => navigate('/')}
@@ -711,8 +711,8 @@ export function ProjectView() {
 
       {/* Rename Schema Modal */}
       {renameSchemaId && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 p-6 rounded-xl w-full max-w-md shadow-2xl border border-slate-700">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 p-6 rounded-xl w-full max-w-md shadow-2xl border border-slate-800">
             <h2 className="text-xl font-bold mb-4 text-slate-100">Rename Schema</h2>
             <div className="mb-6">
               <label className="block text-xs font-medium text-slate-400 mb-1">Schema Name</label>
