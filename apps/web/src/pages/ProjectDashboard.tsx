@@ -97,9 +97,9 @@ export function ProjectDashboard() {
     <div className="flex flex-col md:flex-row h-[100dvh] overflow-hidden bg-slate-950 font-sans text-slate-100">
 
       {/* Mobile Topbar */}
-      <div className="md:hidden w-full bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between z-20 shrink-0 shadow-sm relative">
+      <div className="md:hidden w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 p-4 flex items-center justify-between z-20 shrink-0 shadow-sm relative">
         <div className="flex items-center gap-3">
-          <button onClick={() => setShowMobileSidebar(true)} className="p-1.5 -ml-1.5 text-slate-400 hover:text-slate-100 transition-colors">
+          <button onClick={() => setShowMobileSidebar(true)} title="Open menu" className="p-1.5 -ml-1.5 text-slate-400 hover:text-slate-100 transition-colors">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
@@ -114,7 +114,7 @@ export function ProjectDashboard() {
       {/* Mobile Sidebar Backdrop */}
       {showMobileSidebar && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-200"
           onClick={() => setShowMobileSidebar(false)}
         />
       )}
@@ -128,7 +128,7 @@ export function ProjectDashboard() {
             </div>
             <h1 className="font-bold text-xl text-slate-100 tracking-tight">Bracer</h1>
           </div>
-          <button onClick={() => setShowMobileSidebar(false)} className="md:hidden p-1.5 text-slate-400 hover:text-slate-100 transition-colors">
+          <button onClick={() => setShowMobileSidebar(false)} title="Close menu" className="md:hidden p-1.5 text-slate-400 hover:text-slate-100 transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -201,6 +201,7 @@ export function ProjectDashboard() {
                 onClick={dismissBanner}
                 className="absolute top-3 right-3 z-20 text-indigo-300 hover:text-white transition-colors p-1"
                 aria-label="Dismiss banner"
+                title="Dismiss banner"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -256,6 +257,7 @@ export function ProjectDashboard() {
                 {searchQuery && (
                   <button 
                     onClick={() => setSearchQuery('')}
+                    title="Clear search"
                     className="absolute right-2.5 text-slate-500 hover:text-slate-300 bg-slate-900 z-10"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -306,7 +308,7 @@ export function ProjectDashboard() {
                 return (
                   <div
                     key={project.id}
-                    className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col relative group cursor-pointer hover:border-indigo-500 transition-colors shadow-sm"
+                    className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col relative group cursor-pointer hover:border-indigo-500 transition-colors shadow-sm"
                     onClick={() => navigate(`/project/${project.id}`)}
                     onContextMenu={(e) => handleContextMenu(e, project.id)}
                   >
@@ -315,6 +317,7 @@ export function ProjectDashboard() {
                         {project.name}
                       </h3>
                       <button
+                        title="Project options"
                         className="p-1.5 -mr-1.5 -mt-1 rounded-md hover:bg-slate-800 hover:text-slate-200 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -371,8 +374,8 @@ export function ProjectDashboard() {
 
       {/* New Project Modal */}
       {showNewModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 p-6 rounded-xl w-full max-w-md shadow-2xl border border-slate-700 transform animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 p-6 rounded-xl w-full max-w-md shadow-2xl border border-slate-800 transform animate-in fade-in zoom-in-95 duration-200">
             <h2 className="text-xl font-bold mb-4 text-slate-100">New Project</h2>
             <div className="mb-6">
               <label className="block text-xs font-medium text-slate-400 mb-1">Project Name</label>
@@ -409,8 +412,8 @@ export function ProjectDashboard() {
 
       {/* Rename Modal */}
       {renameId && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 p-6 rounded-xl w-full max-w-md shadow-2xl border border-slate-700">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 p-6 rounded-xl w-full max-w-md shadow-2xl border border-slate-800">
             <h2 className="text-xl font-bold mb-4 text-slate-100">Rename Project</h2>
             <div className="mb-6">
               <label className="block text-xs font-medium text-slate-400 mb-1">Project Name</label>

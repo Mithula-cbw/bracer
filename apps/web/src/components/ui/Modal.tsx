@@ -51,7 +51,7 @@ export function Modal({ isOpen, onClose, title, children, actions }: ModalProps)
       />
       
       <div
-        className={`relative w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden transition-all duration-300 ease-out flex flex-col ${
+        className={`relative w-full max-w-sm bg-slate-900 border border-slate-800 rounded-xl shadow-2xl shadow-black/50 overflow-hidden transition-all duration-300 ease-out flex flex-col ${
           isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
         }`}
       >

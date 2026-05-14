@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
@@ -16,18 +16,18 @@ import type { Schema, SchemaField, FieldType } from '../../../../packages/core/s
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
-const FIELD_TYPES: { value: FieldType; icon: string; label: string }[] = [
-  { value: 'short-text',      icon: 'Aa', label: 'Short Text' },
-  { value: 'long-text',       icon: '¶',  label: 'Long Text' },
-  { value: 'number',          icon: '#',  label: 'Number' },
-  { value: 'number-nullable', icon: '#?', label: 'Number (nullable)' },
-  { value: 'float',           icon: '.#', label: 'Float' },
-  { value: 'float-nullable',  icon: '.#?',label: 'Float (nullable)' },
-  { value: 'toggle',          icon: '◐',  label: 'Toggle' },
-  { value: 'dropdown',        icon: '▾',  label: 'Dropdown' },
-  { value: 'tags',            icon: '⊞',  label: 'Tags' },
-  { value: 'object-optional', icon: '{}', label: 'Object (optional)' },
-  { value: 'list',            icon: '[]', label: 'List' },
+const FIELD_TYPES: { value: FieldType; icon: string; label: string; description: string }[] = [
+  { value: 'short-text',      icon: 'Aa', label: 'Short Text',        description: 'A single line of plain text.' },
+  { value: 'long-text',       icon: '¶',  label: 'Long Text',         description: 'Multi-line text, good for paragraphs.' },
+  { value: 'number',          icon: '#',  label: 'Number',            description: 'An integer number.' },
+  { value: 'number-nullable', icon: '#?', label: 'Number (nullable)', description: 'An integer number that can be left empty.' },
+  { value: 'float',           icon: '.#', label: 'Float',             description: 'A decimal number.' },
+  { value: 'float-nullable',  icon: '.#?',label: 'Float (nullable)',  description: 'A decimal number that can be left empty.' },
+  { value: 'toggle',          icon: '◐',  label: 'Toggle',            description: 'A true/false boolean switch.' },
+  { value: 'dropdown',        icon: '▾',  label: 'Dropdown',          description: 'Select from a predefined list of options.' },
+  { value: 'tags',            icon: '⊞',  label: 'Tags',              description: 'A list of distinct string tags.' },
+  { value: 'object-optional', icon: '{}', label: 'Object (optional)', description: 'A nested group of fields that can be toggled on/off.' },
+  { value: 'list',            icon: '[]', label: 'List',              description: 'An array of repeating sub-fields.' },
 ];
 
 const TYPE_ICON: Record<FieldType, string> = Object.fromEntries(
@@ -74,6 +74,7 @@ function ChipEditor({ options, onChange }: { options: string[]; onChange: (o: st
             <span key={opt} className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium shadow-sm transition-all hover:brightness-110 ${color}`}>
               {opt}
               <button type="button" onClick={() => onChange(options.filter((o) => o !== opt))}
+                title={`Remove ${opt}`}
                 className="w-4 h-4 rounded-md flex items-center justify-center opacity-70 hover:opacity-100 hover:text-red-400 hover:bg-red-400/20 transition-all leading-none focus:outline-none">
                 <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -92,6 +93,7 @@ function ChipEditor({ options, onChange }: { options: string[]; onChange: (o: st
           className="flex-1 max-w-[200px] px-3 py-1.5 text-xs rounded-md bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 outline-none focus:border-indigo-500 transition-colors shadow-inner"
         />
         <button type="button" onClick={add} disabled={!draft.trim()}
+          title="Add option"
           className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-800 border border-slate-700 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white disabled:opacity-50 disabled:hover:bg-slate-800 disabled:hover:border-slate-700 disabled:text-slate-500 text-slate-300 transition-all shadow-sm">
           Add
         </button>
@@ -127,9 +129,62 @@ function SubFieldList({ fields, depth, onChange }: { fields: SchemaField[]; dept
         <div className="text-xs text-slate-600 py-1 italic">No sub-fields yet</div>
       )}
       <button type="button" onClick={() => onChange([...fields, blankField()])}
+        title="Add new sub-field"
         className="mt-1 text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors self-start font-medium">
         <span className="text-sm">+</span> Add sub-field
       </button>
+    </div>
+  );
+}
+
+// ─── FieldTypeDropdown ────────────────────────────────────────────────────────
+
+function FieldTypeDropdown({ value, onChange }: { value: FieldType; onChange: (v: FieldType) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const selected = FIELD_TYPES.find(t => t.value === value) || FIELD_TYPES[0];
+
+  return (
+    <div ref={ref} className="relative flex-shrink-0">
+      <button
+        type="button"
+        title="Change field type"
+        onClick={() => setOpen(!open)}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
+          open ? 'bg-slate-800 text-slate-100 shadow-inner' : 'text-slate-300 hover:text-slate-100 hover:bg-slate-800/80'
+        }`}
+      >
+        <span className="font-medium">{selected.label}</span>
+        <svg className={`w-3.5 h-3.5 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute top-full right-0 mt-1.5 w-[200px] bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100 py-1">
+          {FIELD_TYPES.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              title={t.description}
+              onClick={() => { onChange(t.value); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2.5 transition-colors ${
+                t.value === value ? 'bg-indigo-500/10 text-indigo-300 font-medium' : 'text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+              }`}
+            >
+              <span className={`w-5 text-center font-mono text-[10px] ${t.value === value ? 'text-indigo-400' : 'text-slate-500'}`}>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -157,6 +212,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
 
         {/* Drag handle */}
         <button type="button" {...attributes} {...listeners}
+          title="Drag to reorder"
           className="text-slate-600 hover:text-slate-300 hover:bg-slate-800 p-1 sm:p-1.5 rounded-md cursor-grab active:cursor-grabbing flex-shrink-0 touch-none transition-colors">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
             <circle cx="5" cy="4" r="1.2"/><circle cx="11" cy="4" r="1.2"/>
@@ -166,7 +222,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
         </button>
 
         {/* Type icon badge */}
-        <span className="hidden sm:flex flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 items-center justify-center text-[11px] font-mono font-bold text-indigo-400 select-none shadow-sm">
+        <span title="Field Type" className="hidden sm:flex flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 items-center justify-center text-[11px] font-mono font-bold text-indigo-400 select-none shadow-sm">
           {TYPE_ICON[field.type]}
         </span>
 
@@ -174,25 +230,16 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
         <input
           value={field.name}
           onChange={(e) => onChange({ ...field, name: e.target.value, label: e.target.value })}
+          title="Field Name (JSON key)"
           placeholder="field_name"
           className="flex-1 w-full sm:w-auto min-w-[120px] px-2 sm:px-3 py-1.5 text-sm rounded-lg bg-slate-950/50 border border-slate-800/80 text-slate-100 placeholder:text-slate-600 outline-none focus:border-indigo-500 focus:bg-slate-950 font-mono transition-all shadow-inner"
         />
 
         {/* Type select */}
-        <div className="relative flex-shrink-0">
-          <select
-            value={field.type}
-            onChange={(e) => onChange({ ...field, type: e.target.value as FieldType, options: [], subFields: [] })}
-            className="appearance-none pl-2 sm:pl-3 pr-6 sm:pr-8 py-1.5 text-xs rounded-lg bg-slate-950/50 border border-slate-800/80 text-slate-300 outline-none focus:border-indigo-500 cursor-pointer transition-all hover:border-slate-600 font-medium shadow-inner"
-          >
-            {FIELD_TYPES.map((t) => (
-              <option key={t.value} value={t.value} className="bg-slate-900 text-slate-300">{t.icon} {t.label}</option>
-            ))}
-          </select>
-          <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
+        <FieldTypeDropdown 
+          value={field.type} 
+          onChange={(type) => onChange({ ...field, type, options: [], subFields: [] })} 
+        />
 
         {/* Required */}
         <button type="button" onClick={() => onChange({ ...field, required: !field.required })}
@@ -208,6 +255,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
         {/* Expand sub-fields */}
         {hasSubFields && (
           <button type="button" onClick={() => setSubOpen((o) => !o)}
+            title={subOpen ? 'Collapse sub-fields' : 'Expand sub-fields'}
             className={`flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-md flex items-center justify-center transition-colors ${subOpen ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'}`}>
             <svg className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-200 ${subOpen ? 'rotate-90' : ''}`}
               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -218,6 +266,7 @@ function FieldRow({ field, depth = 0, onChange, onDelete }: {
 
         {/* Delete */}
         <button type="button" onClick={onDelete}
+          title="Delete field"
           className="flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-md flex items-center justify-center text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors sm:opacity-0 group-hover:opacity-100">
           <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -268,6 +317,7 @@ function FieldList({ fields, onChange, label, addLabel, hint }: {
 
       {fields.length === 0 ? (
         <button type="button" onClick={() => onChange([blankField()])}
+          title={addLabel}
           className="w-full border-2 border-dashed border-slate-800/80 hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-xl py-10 flex flex-col items-center gap-3 text-slate-500 hover:text-indigo-400 transition-all group cursor-pointer">
           <div className="w-10 h-10 rounded-full bg-slate-900 group-hover:bg-indigo-500/10 flex items-center justify-center transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -288,6 +338,7 @@ function FieldList({ fields, onChange, label, addLabel, hint }: {
             </SortableContext>
           </DndContext>
           <button type="button" onClick={() => onChange([...fields, blankField()])}
+            title={addLabel}
             className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-indigo-400 hover:text-white bg-indigo-500/10 hover:bg-indigo-600 transition-colors">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -368,6 +419,7 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">
       <button type="button" onClick={() => setOpen((o) => !o)}
+        title={open ? "Hide import panel" : "Show import panel"}
         className="w-full flex items-center justify-between px-4 py-3.5 text-sm font-medium text-slate-300 hover:text-slate-100 hover:bg-slate-800/30 transition-all">
         <span className="flex items-center gap-2.5">
           <span className="w-6 h-6 rounded-md bg-indigo-900/60 border border-indigo-800/60 flex items-center justify-center">
@@ -395,6 +447,7 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
             <>
               {/* Drop zone */}
               <div
+                title="Click to browse or drag and drop a JSON file"
                 onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
                 onDrop={handleDrop}
@@ -467,11 +520,13 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
 
           <div className="flex items-center gap-3">
             <button type="button" onClick={handleDetect} disabled={!json.trim()}
+              title="Detect schema fields from JSON"
               className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors shadow-sm shadow-indigo-900/50">
               Detect Fields
             </button>
             {json.trim() && (
               <button type="button" onClick={handleClearClick}
+                title="Clear JSON and reset detection"
                 className="px-3 py-1.5 text-sm text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors font-medium border border-transparent hover:border-red-500/20">
                 Clear
               </button>
@@ -486,8 +541,8 @@ function ImportPanel({ onDetect, onClear }: { onDetect: (s: Schema) => void; onC
         title="Clear Detected Fields"
         actions={
           <>
-            <button onClick={() => setClearModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
-            <button onClick={confirmClear} className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Clear Fields</button>
+            <button onClick={() => setClearModalOpen(false)} title="Cancel" className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
+            <button onClick={confirmClear} title="Clear fields" className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Clear Fields</button>
           </>
         }
       >
@@ -608,9 +663,10 @@ export function SchemaEditor() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24">
       {/* Top bar */}
-      <div className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 shadow-sm">
+      <div className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 h-14 sm:h-16 flex items-center gap-3">
           <button type="button" onClick={handleBack}
+            title="Back to project"
             className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-100 hover:border-slate-600 transition-all flex-shrink-0 group shadow-sm">
             <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -658,7 +714,7 @@ export function SchemaEditor() {
           }}
         />
 
-        <div className="bg-slate-900/40 sm:rounded-2xl border-y sm:border border-slate-800/80 p-4 sm:p-6 hover:border-slate-700/80 transition-colors sm:shadow-sm -mx-4 sm:mx-0">
+        <div className="bg-slate-900/40 sm:rounded-xl border-y sm:border border-slate-800/80 p-4 sm:p-6 hover:border-slate-700/80 transition-colors sm:shadow-sm -mx-4 sm:mx-0">
           <FieldList
             label="Root Fields"
             addLabel="Add root field"
@@ -668,7 +724,7 @@ export function SchemaEditor() {
           />
         </div>
 
-        <div className="bg-slate-900/40 sm:rounded-2xl border-y sm:border border-slate-800/80 p-4 sm:p-6 hover:border-slate-700/80 transition-colors sm:shadow-sm -mx-4 sm:mx-0">
+        <div className="bg-slate-900/40 sm:rounded-xl border-y sm:border border-slate-800/80 p-4 sm:p-6 hover:border-slate-700/80 transition-colors sm:shadow-sm -mx-4 sm:mx-0">
           <FieldList
             label="List Fields"
             addLabel="Add list field"
@@ -684,6 +740,7 @@ export function SchemaEditor() {
         <button
           type="button"
           onClick={handleSave}
+          title="Save schema changes"
           className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-3 sm:py-2.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-lg shadow-indigo-900/50 hover:shadow-indigo-800/60 hover:-translate-y-0.5 active:translate-y-0"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -700,8 +757,8 @@ export function SchemaEditor() {
         title="Replace Fields?"
         actions={
           <>
-            <button onClick={() => setPendingInferredSchema(null)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
-            <button onClick={confirmReplace} className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Replace</button>
+            <button onClick={() => setPendingInferredSchema(null)} title="Cancel" className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
+            <button onClick={confirmReplace} title="Replace fields" className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Replace</button>
           </>
         }
       >
@@ -714,8 +771,8 @@ export function SchemaEditor() {
         title="Discard Changes?"
         actions={
           <>
-            <button onClick={() => setBackModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
-            <button onClick={confirmBack} className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Discard</button>
+            <button onClick={() => setBackModalOpen(false)} title="Cancel" className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">Cancel</button>
+            <button onClick={confirmBack} title="Discard changes" className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors shadow-sm shadow-red-900/50">Discard</button>
           </>
         }
       >
